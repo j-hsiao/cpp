@@ -28,11 +28,11 @@ namespace aes
 	//------------------------------
 	enum AESVersion : int { aes128 = 0, aes192 = 1, aes256 = 2 };
 	enum AESEndian : int { mix_endian = 0, big_endian = 1, little_endian = 2 };
-	static const std::size_t k_bytebits = 8;
-	static const std::size_t k_wordbytes = 4;
-	static const std::size_t STATEWORDS = 4;
-	static const std::size_t STATEBYTES = k_wordbytes * STATEWORDS;
-	static const std::size_t NUM_KBYTES[] = {16, 24, 32};
+	static const std::size_t ByteBits = 8;
+	static const std::size_t WordBytes = 4;
+	static const std::size_t StateWords = 4;
+	static const std::size_t StateBytes = WordBytes * StateWords;
+	static const std::size_t NumKeyBytes[] = {16, 24, 32};
 
 	//------------------------------
 	// classes
@@ -44,7 +44,7 @@ namespace aes
 
 		public:
 			static const int ENDIAN;
-			static std::size_t padding(std::size_t size) { return STATEBYTES - (size % STATEBYTES); }
+			static std::size_t padding(std::size_t size) { return StateBytes - (size % StateBytes); }
 
 			AES(const void *key, AESVersion version);
 
@@ -106,7 +106,7 @@ namespace aes
 	inline T make_key(const T &password, AESVersion version, int passes)
 	{
 		static_assert(sizeof(typename T::value_type) == 1, "container should have value_type of 1 byte");
-		T ret(NUM_KBYTES[version], 0);
+		T ret(NumKeyBytes[version], 0);
 		make_key(&ret[0], &password[0], password.size(), version, passes);
 		return ret;
 	}

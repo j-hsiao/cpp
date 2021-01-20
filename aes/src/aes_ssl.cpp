@@ -64,7 +64,7 @@ namespace aes
 		struct SSLCTX
 		{
 			static const CryptoInitializer init_ssl_crypto;
-			static const unsigned char IV[STATEBYTES];
+			static const unsigned char IV[StateBytes];
 			EVP_CIPHER_CTX *ctx;
 			SSLCTX(
 				const AES_statevec &keys,
@@ -152,7 +152,7 @@ namespace aes
 					throw std::runtime_error("failed to decrypt data, indeterminate state");
 				}
 				totlen += steplen;
-				if ((totlen < length) && ((totlen + STATEBYTES) >= length))
+				if ((totlen < length) && ((totlen + StateBytes) >= length))
 				{
 					return length - totlen;
 				}
@@ -160,7 +160,7 @@ namespace aes
 			}
 
 		};
-		const unsigned char SSLCTX::IV[STATEBYTES] = {
+		const unsigned char SSLCTX::IV[StateBytes] = {
 			0, 0, 0, 0,
 			0, 0, 0, 0,
 			0, 0, 0, 0,

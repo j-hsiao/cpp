@@ -42,7 +42,7 @@ namespace aes
 		static const std::size_t HASHBITS = 256;
 		static const std::size_t HASHBYTES = HASHBITS / CHAR_BIT;
 		static const std::size_t WORDBITS = 32;
-		static const std::size_t k_wordbytes = WORDBITS / CHAR_BIT;
+		static const std::size_t WordBytes = WORDBITS / CHAR_BIT;
 		static const std::size_t CHUNKBITS = 512;
 		static const std::size_t CHUNKBYTES = CHUNKBITS / CHAR_BIT;
 		static const std::size_t CHUNKWORDS = CHUNKBITS / WORDBITS;
@@ -72,9 +72,9 @@ namespace aes
 			{
 				uint_fast32_t &d = dst[i];
 				d = 0;
-				for (std::size_t bi = 0; bi < k_wordbytes; ++bi)
+				for (std::size_t bi = 0; bi < WordBytes; ++bi)
 				{
-					std::size_t shift = CHAR_BIT * (k_wordbytes - (bi + 1));
+					std::size_t shift = CHAR_BIT * (WordBytes - (bi + 1));
 					d |= static_cast<uint_fast32_t>(*b) << shift;
 					++b;
 				}
@@ -87,9 +87,9 @@ namespace aes
 			for (std::size_t i = 0; i < nwords; ++i)
 			{
 				uint_fast32_t s = src[i];
-				for (std::size_t bi = 0; bi < k_wordbytes; ++bi)
+				for (std::size_t bi = 0; bi < WordBytes; ++bi)
 				{
-					std::size_t shift = CHAR_BIT * (k_wordbytes - (bi + 1));
+					std::size_t shift = CHAR_BIT * (WordBytes - (bi + 1));
 					*b = static_cast<unsigned char>(((s >> shift) & BYTEMASK));
 					++b;
 				}
@@ -152,7 +152,7 @@ namespace aes
 
 	std::vector<ubyte> roundconsts(AESVersion v)
 	{
-		std::vector<ubyte> b(k_nconsts[v]);
+		std::vector<ubyte> b(NumConsts[v]);
 		b[0] = 0x01;
 		for (std::size_t i = 1; i < b.size(); ++i)
 		{
@@ -164,10 +164,10 @@ namespace aes
 	namespace
 	{
 #if AES_ENDIAN
-		const std::size_t WORDBITS = k_wordbytes * k_bytebits;
+		const std::size_t WORDBITS = WordBytes * ByteBits;
 		AESWord rotate_left_byte(AESWord w)
 		{
-			return lshift(w, k_bytebits) | rshift(w, WORDBITS - k_bytebits);
+			return lshift(w, ByteBits) | rshift(w, WORDBITS - ByteBits);
 		}
 
 #else
@@ -186,10 +186,10 @@ namespace aes
 			AESWord ret;
 			const ubyte *src = reinterpret_cast<const ubyte*>(&w);
 			ubyte *dst = reinterpret_cast<ubyte*>(&ret);
-			dst[0] = k_sbox[src[0]];
-			dst[1] = k_sbox[src[1]];
-			dst[2] = k_sbox[src[2]];
-			dst[3] = k_sbox[src[3]];
+			dst[0] = SBox[src[0]];
+			dst[1] = SBox[src[1]];
+			dst[2] = SBox[src[2]];
+			dst[3] = SBox[src[3]];
 			return ret;
 		}
 	}
@@ -197,22 +197,22 @@ namespace aes
 	AES_statevec expand_keys(const void *key, AESVersion v)
 	{
 		std::vector<ubyte> rc_i = roundconsts(v);
-		const std::size_t N = k_nkeywords[v];
-		const std::size_t R = k_nrounds[v] + 1;
+		const std::size_t N = NumKeywords[v];
+		const std::size_t R = NumRounds[v] + 1;
 		AES_statevec roundkeys(R);
 		AESWord *words = reinterpret_cast<AESWord*>(&roundkeys[0]);
-		std::memcpy(words, key, N * k_wordbytes);
+		std::memcpy(words, key, N * WordBytes);
 
 
 		
-		const std::size_t end = R * STATEWORDS;
+		const std::size_t end = R * StateWords;
 		for (std::size_t i = N; i < end; ++i)
 		{
 			AESWord *w = words + i;
 			if (i % N == 0)
 			{
 				std::size_t remain = end - i;
-				std::memcpy(w, w - N, (N < remain ? N : remain) * k_wordbytes);
+				std::memcpy(w, w - N, (N < remain ? N : remain) * WordBytes);
 				*w ^= sub_w(rotate_left_byte(w[-1]));
 				*reinterpret_cast<ubyte*>(w) ^= rc_i[(i / N) - 1];
 			}
@@ -239,13 +239,13 @@ namespace aes
 		{
 			auto *src = reinterpret_cast<const ubyte*>(&roundkeys[rk]);
 			AESState &state = iroundkeys[s];
-			for (std::size_t w = 0; w < STATEWORDS; ++w)
+			for (std::size_t w = 0; w < StateWords; ++w)
 			{
-				std::size_t byteoff = w * k_wordbytes;
-				state.words[w] = k_imix[0][k_sbox[src[byteoff]]];
-				for (std::size_t b = 1; b < k_wordbytes; ++b)
+				std::size_t byteoff = w * WordBytes;
+				state.words[w] = IMix[0][SBox[src[byteoff]]];
+				for (std::size_t b = 1; b < WordBytes; ++b)
 				{
-					state.words[w] ^= k_imix[b][k_sbox[src[byteoff + b]]];
+					state.words[w] ^= IMix[b][SBox[src[byteoff + b]]];
 				}
 			}
 		}
@@ -257,7 +257,7 @@ namespace aes
 		void *dst, const void *data, std::size_t passbytes,
 		AESVersion version, int passes)
 	{
-		std::size_t keybytes = NUM_KBYTES[version];
+		std::size_t keybytes = NumKeyBytes[version];
 		ubyte *key = reinterpret_cast<ubyte*>(dst);
 		const ubyte *pass;
 		if (passbytes)
@@ -274,9 +274,9 @@ namespace aes
 		std::size_t end = passbytes > keybytes ? passbytes : keybytes;
 		for (; i < end; ++i)
 		{
-			std::size_t pshift = (i / passbytes) % k_bytebits;
+			std::size_t pshift = (i / passbytes) % ByteBits;
 			ubyte p = pass[i % passbytes];
-			p = p >> pshift ^ p << (k_bytebits - pshift);
+			p = p >> pshift ^ p << (ByteBits - pshift);
 			state ^= p ^ 0x1b;
 			key[i % keybytes] ^= static_cast<ubyte>(state & 0xffu);
 			state ^= (state << 7) ^ (state >> 3);

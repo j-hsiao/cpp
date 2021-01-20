@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(ENABLE_IPO "lto" ON)
 option(BUILD_TESTS "build tests" ON)
-include("${CMAKE_CURRENT_LIST_DIR}/../common.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/../common.cmake" NO_POLICY_SCOPE)
 
 add_library(pimpl INTERFACE)
 target_include_directories(

@@ -63,7 +63,7 @@ namespace aes
 		return ret;
 	}
 
-	static const std::size_t kWordbits = k_wordbytes * k_bytebits;
+	static const std::size_t WordBits = WordBytes * ByteBits;
 
 //performance differences seem mostly because
 //didn't turn on optimization... CMAKE_BUILD_TYPE default was not Release?
@@ -102,14 +102,14 @@ namespace aes
 
 	inline AESWord rotate_right(AESWord v, std::size_t amt)
 	{
-		amt %= kWordbits;
-		return rshift(v, amt) | lshift(v, (kWordbits - amt));
+		amt %= WordBits;
+		return rshift(v, amt) | lshift(v, (WordBits - amt));
 	}
 
 #else
-	struct alignas(k_wordbytes) AESWord
+	struct alignas(WordBytes) AESWord
 	{
-		ubyte bytes[k_wordbytes];
+		ubyte bytes[WordBytes];
 	};
 	inline void xorwords(
 		AESWord &dst,
@@ -124,15 +124,15 @@ namespace aes
 
 	inline AESWord rotate_right(const AESWord &v, std::size_t amt)
 	{
-		amt %= kWordbits;
+		amt %= WordBits;
 		AESWord buff[2];
 		buff[0] = v;
 		buff[1] = v;
-		const ubyte *p = reinterpret_cast<ubyte*>(buff) + k_wordbytes - (amt / k_bytebits);
-		std::size_t r = amt % k_bytebits;
-		std::size_t l = k_bytebits - r;
+		const ubyte *p = reinterpret_cast<ubyte*>(buff) + WordBytes - (amt / ByteBits);
+		std::size_t r = amt % ByteBits;
+		std::size_t l = ByteBits - r;
 		AESWord ret;
-		for (int i = 0; i < k_wordbytes; ++i)
+		for (int i = 0; i < WordBytes; ++i)
 		{
 			ret.bytes[i] = (p[i] >> r) | (p[i - 1] << l);
 		}
@@ -159,9 +159,9 @@ namespace aes
 
 #endif
 
-	union alignas(STATEBYTES) AESState
+	union alignas(StateBytes) AESState
 	{
-		AESWord words[STATEWORDS];
+		AESWord words[StateWords];
 #ifdef UINT64_MAX
 		uint64_t uints[2];
 		AESState& operator^=(const AESState &o)
@@ -215,8 +215,8 @@ namespace aes
 			std::memcpy(ptr, this, sizeof(*this));
 		}
 	};
-	static_assert(sizeof(AESWord) == k_wordbytes, "AESWord size is wrong");
-	static_assert(sizeof(AESState) == STATEBYTES, "AESState size is wrong");
+	static_assert(sizeof(AESWord) == WordBytes, "AESWord size is wrong");
+	static_assert(sizeof(AESState) == StateBytes, "AESState size is wrong");
 
 	typedef std::vector<AESWord, align::AlignedAllocator<AESWord>> AES_wordvec;
 	typedef std::vector<AESState, align::AlignedAllocator<AESState>> AES_statevec;

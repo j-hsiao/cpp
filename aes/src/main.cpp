@@ -337,11 +337,11 @@ int argmain(int argc, char *argv[])
 			v,
 			std::stoul(args.at("passes")[0]));
 	}
-	if (key.size() != aes::NUM_KBYTES[v])
+	if (key.size() != aes::NumKeyBytes[v])
 	{
 		
 		std::cerr << "bad key or password" << std::endl;
-		std::cerr << "key should be " << aes::NUM_KBYTES[v]
+		std::cerr << "key should be " << aes::NumKeyBytes[v]
 			<< " bytes but was " << key.size() << std::endl;
 		return 1;
 	}

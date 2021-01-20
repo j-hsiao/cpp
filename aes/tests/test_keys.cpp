@@ -14,14 +14,14 @@ bool cmp(const void *a, const void *b, std::size_t size)
 	const aes::ubyte *b2 = reinterpret_cast<const aes::ubyte*>(b);
 	if (std::memcmp(b1, b2, size))
 	{
-		for (std::size_t i = 0; i < size; i += aes::k_wordbytes)
+		for (std::size_t i = 0; i < size; i += aes::WordBytes)
 		{
-			for (std::size_t k = 0; k < aes::k_wordbytes; ++k)
+			for (std::size_t k = 0; k < aes::WordBytes; ++k)
 			{
 				std::cout << std::hex;
 				if (b1[i + k] != b2[i + k])
 				{
-					std::cout << "difference in word " << std::dec << (i / aes::k_wordbytes)
+					std::cout << "difference in word " << std::dec << (i / aes::WordBytes)
 						<< " byte " << k << ':' << std::hex
 						<< static_cast<unsigned int>(b1[i + k]) << " vs "
 						<< static_cast<unsigned int>(b2[i + k]) << std::endl;
@@ -57,8 +57,8 @@ void check_expand_keys256()
 		0x1f, 0x54, 0xcc, 0xd0, 0x2f, 0xd8, 0x20, 0x68, 0x81, 0xea, 0x8d, 0xab, 0x21, 0x89, 0xb1, 0xb9,
 		0xd3, 0x1a, 0x3c, 0x17, 0xd2, 0x4b, 0x74, 0x3b, 0xa7, 0x88, 0xd2, 0xbf, 0x71, 0xa9, 0x36, 0xf3
 	};
-	std::size_t numrounds = aes::k_nrounds[aes::aes256];
-	assert(cmp(v.data(), expected, numrounds * aes::STATEBYTES));
+	std::size_t numrounds = aes::NumRounds[aes::aes256];
+	assert(cmp(v.data(), expected, numrounds * aes::StateBytes));
 	std::cout << "aes256 key expansion passed" << std::endl;
 }
 
@@ -93,7 +93,7 @@ void check_iexpand_keys256()
 void check_expand_keys128()
 {
 	aes::ubyte key[] = "Thats my Kung Fu";
-	std::size_t roundkeyBytes = aes::k_nrounds[aes::aes128] * aes::STATEBYTES;
+	std::size_t roundkeyBytes = aes::NumRounds[aes::aes128] * aes::StateBytes;
 
 	auto v = aes::expand_keys(key, aes::aes128);
 	aes::ubyte expected[] = {

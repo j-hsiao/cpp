@@ -19,7 +19,7 @@ namespace aes
 #ifdef AES_DEBUG
 		auto *word = reinterpret_cast<const aes::ubyte*>(s);
 		std::cout << std::hex;
-		for (int j = 0; j < k_wordbytes; ++j)
+		for (int j = 0; j < WordBytes; ++j)
 		{
 			std::cout << '\t' << static_cast<unsigned int>(word[j]);
 		}
@@ -32,7 +32,7 @@ namespace aes
 	{
 #ifdef AES_DEBUG
 		auto state = reinterpret_cast<const aes::ubyte*>(s);
-		for (int i = 0; i < STATEBYTES; i += k_wordbytes)
+		for (int i = 0; i < StateBytes; i += WordBytes)
 		{
 			print_word(state + i);
 		}
@@ -84,7 +84,7 @@ namespace aes
 		std::memset(end, padding, padding);
 		end += padding;
 		AESState tmp;
-		for (; d < end; d += STATEBYTES)
+		for (; d < end; d += StateBytes)
 		{
 			tmp << d;
 			codec::encrypt(tmp, roundkeys);
@@ -99,12 +99,12 @@ namespace aes
 		const AES_statevec &roundkeys,
 		const AES_statevec &iroundkeys)
 	{
-		if (length % STATEBYTES)
+		if (length % StateBytes)
 		{ throw std::runtime_error("invalid encrypted data length"); }
 		auto *d = reinterpret_cast<ubyte*>(data);
 		auto *end = d + length;
 		AESState tmp;
-		for (; d < end; d += STATEBYTES)
+		for (; d < end; d += StateBytes)
 		{
 			tmp << d;
 			codec::decrypt(tmp, iroundkeys);
@@ -121,7 +121,7 @@ namespace aes
 	{
 		ubyte padding = static_cast<ubyte>(AES::padding(length));
 		std::size_t outlen = length + padding;
-		AES_statevec aligned(outlen / STATEBYTES);
+		AES_statevec aligned(outlen / StateBytes);
 		std::memcpy(&aligned[0], data, length);
 		std::memset(
 			reinterpret_cast<ubyte*>(&aligned[0]) + length,
@@ -147,9 +147,9 @@ namespace aes
 		const AES_statevec &roundkeys,
 		const AES_statevec &iroundkeys)
 	{
-		if (length % STATEBYTES || length == 0)
+		if (length % StateBytes || length == 0)
 		{ throw std::runtime_error("invalid encrypted data length"); }
-		AES_statevec tmp(length / STATEBYTES);
+		AES_statevec tmp(length / StateBytes);
 		std::memcpy(&tmp[0], data, length);
 
 		AESState *end = &tmp[0];

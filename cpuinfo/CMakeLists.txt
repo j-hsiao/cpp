@@ -3,7 +3,7 @@ cmake_minimum_required (VERSION 3.0)
 project(cpuinfo)
 
 option(ENABLE_IPO "lto" ON)
-include("${CMAKE_CURRENT_LIST_DIR}/../common.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/../common.cmake" NO_POLICY_SCOPE)
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

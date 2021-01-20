@@ -188,28 +188,28 @@ void check_round()
 	state1 ^= roundkeys[0];
 	assert(std::memcmp(&state1, aes128ex::addkey0, 16) == 0);
 
-	state[0] = aes::k_mix[0][src[0]] ^ aes::k_mix[1][src[5]] ^ aes::k_mix[2][src[10]] ^ aes::k_mix[3][src[15]];
-	state[1] = aes::k_mix[0][src[4]] ^ aes::k_mix[1][src[9]] ^ aes::k_mix[2][src[14]] ^ aes::k_mix[3][src[3]];
-	state[2] = aes::k_mix[0][src[8]] ^ aes::k_mix[1][src[13]] ^ aes::k_mix[2][src[2]] ^ aes::k_mix[3][src[7]];
-	state[3] = aes::k_mix[0][src[12]] ^ aes::k_mix[1][src[1]] ^ aes::k_mix[2][src[6]] ^ aes::k_mix[3][src[11]];
+	state[0] = aes::Mix[0][src[0]] ^ aes::Mix[1][src[5]] ^ aes::Mix[2][src[10]] ^ aes::Mix[3][src[15]];
+	state[1] = aes::Mix[0][src[4]] ^ aes::Mix[1][src[9]] ^ aes::Mix[2][src[14]] ^ aes::Mix[3][src[3]];
+	state[2] = aes::Mix[0][src[8]] ^ aes::Mix[1][src[13]] ^ aes::Mix[2][src[2]] ^ aes::Mix[3][src[7]];
+	state[3] = aes::Mix[0][src[12]] ^ aes::Mix[1][src[1]] ^ aes::Mix[2][src[6]] ^ aes::Mix[3][src[11]];
 
 	assert(std::memcmp(&buff, aes128ex::mix0, 16) == 0);
 	state1 = buff ^ roundkeys[1];
 	assert(std::memcmp(&state1, aes128ex::addkey1, 16) == 0);
 
-	for (std::size_t i = 0; i < aes::STATEBYTES; ++i)
+	for (std::size_t i = 0; i < aes::StateBytes; ++i)
 	{
-		reinterpret_cast<aes::ubyte*>(&buff)[i] = aes::k_sbox[src[aes::k_shiftrows[i]]];
+		reinterpret_cast<aes::ubyte*>(&buff)[i] = aes::SBox[src[aes::Shiftrows[i]]];
 	}
 
 	assert(std::memcmp(&buff, aes128ex::shift1, 16) == 0);
 
 //begin test backwards
 	state1 = buff;
-	state[0] = aes::k_imix[0][src[0]] ^ aes::k_imix[1][src[13]] ^ aes::k_imix[2][src[10]] ^ aes::k_imix[3][src[7]];
-	state[1] = aes::k_imix[0][src[4]] ^ aes::k_imix[1][src[1]] ^ aes::k_imix[2][src[14]] ^ aes::k_imix[3][src[11]];
-	state[2] = aes::k_imix[0][src[8]] ^ aes::k_imix[1][src[5]] ^ aes::k_imix[2][src[2]] ^ aes::k_imix[3][src[15]];
-	state[3] = aes::k_imix[0][src[12]] ^ aes::k_imix[1][src[9]] ^ aes::k_imix[2][src[6]] ^ aes::k_imix[3][src[3]];
+	state[0] = aes::IMix[0][src[0]] ^ aes::IMix[1][src[13]] ^ aes::IMix[2][src[10]] ^ aes::IMix[3][src[7]];
+	state[1] = aes::IMix[0][src[4]] ^ aes::IMix[1][src[1]] ^ aes::IMix[2][src[14]] ^ aes::IMix[3][src[11]];
+	state[2] = aes::IMix[0][src[8]] ^ aes::IMix[1][src[5]] ^ aes::IMix[2][src[2]] ^ aes::IMix[3][src[15]];
+	state[3] = aes::IMix[0][src[12]] ^ aes::IMix[1][src[9]] ^ aes::IMix[2][src[6]] ^ aes::IMix[3][src[3]];
 	buff ^= iroundkeys[iroundkeys.size() - 2];
 	assert(std::memcmp(&buff, aes128ex::shift0, 16) == 0);
 
@@ -225,8 +225,8 @@ void check_mix()
 {
 	for (std::size_t i = 0; i < 256; ++i)
 	{
-		assert(i == aes::k_ibox[aes::k_sbox[i]]);
-		assert(i == aes::k_sbox[aes::k_ibox[i]]);
+		assert(i == aes::IBox[aes::SBox[i]]);
+		assert(i == aes::SBox[aes::IBox[i]]);
 	}
 	aes::AESWord w1;
 	aes::AESWord w2;
@@ -258,10 +258,10 @@ void check_mix()
 		unsigned char check[4];
 		std::memcpy(check, s, 4);
 		gmix_column(check);
-		w1 = aes::k_mix[0][aes::k_ibox[s[0]]] ^ aes::k_mix[1][aes::k_ibox[s[1]]] ^ aes::k_mix[2][aes::k_ibox[s[2]]] ^ aes::k_mix[3][aes::k_ibox[s[3]]];
+		w1 = aes::Mix[0][aes::IBox[s[0]]] ^ aes::Mix[1][aes::IBox[s[1]]] ^ aes::Mix[2][aes::IBox[s[2]]] ^ aes::Mix[3][aes::IBox[s[3]]];
 		assert(memcmp(&w1, check, aes::k_wordbytes) == 0);
 
-		w2 = aes::k_imix[0][aes::k_sbox[bw1[0]]] ^ aes::k_imix[1][aes::k_sbox[bw1[1]]] ^ aes::k_imix[2][aes::k_sbox[bw1[2]]] ^ aes::k_imix[3][aes::k_sbox[bw1[3]]];
+		w2 = aes::IMix[0][aes::SBox[bw1[0]]] ^ aes::IMix[1][aes::SBox[bw1[1]]] ^ aes::IMix[2][aes::SBox[bw1[2]]] ^ aes::IMix[3][aes::SBox[bw1[3]]];
 		assert(memcmp(&w2, s, aes::k_wordbytes) == 0);
 	}
 	std::cout << "mixcols passed" << std::endl;
@@ -270,8 +270,8 @@ void check_sboxes()
 {
 	for (int i = 0; i < 256; ++i)
 	{
-		assert(aes::k_sbox[aes::k_ibox[i]] == i);
-		assert(aes::k_ibox[aes::k_sbox[i]] == i);
+		assert(aes::SBox[aes::IBox[i]] == i);
+		assert(aes::IBox[aes::SBox[i]] == i);
 	}
 	std::cout << "sbox/ibox pass" << std::endl;
 }

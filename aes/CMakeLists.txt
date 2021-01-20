@@ -5,8 +5,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 project(aes)
 
-option(ENABLE_IPO "lto" ON)
-include("${CMAKE_CURRENT_LIST_DIR}/../common.cmake")
+option(ENABLE_IPO "lto" OFF)
+include("${CMAKE_CURRENT_LIST_DIR}/../common.cmake" NO_POLICY_SCOPE)
 
 option(AES_USE_SSLPACKAGE "use find_package to find openssl (OFF = manually specify)" ON)
 option(AES_DEBUG "compile with aes debugging logging" OFF)
