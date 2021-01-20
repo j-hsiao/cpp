@@ -48,7 +48,7 @@ namespace aes
 		static const std::size_t CHUNKWORDS = CHUNKBITS / WORDBITS;
 		static const std::size_t HASHWORDS = HASHBITS / WORDBITS;
 		static const std::size_t CHUNKLENBITS = 64;
-		static const std::size_t CHUNKLENBYTES = CHUNKLEN_BITS / CHAR_BIT;
+		static const std::size_t CHUNKLENBYTES = CHUNKLENBITS / CHAR_BIT;
 		static const std::size_t CHUNKBUFF = 64;
 
 		static const std::uint_fast32_t WORDMASK = 0xFFFFFFFFu;
@@ -65,10 +65,10 @@ namespace aes
 			0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
 		};
 
-		void loadwords(uint_fast32_t *dst, const void *src, std::size_t count)
+		void loadwords(uint_fast32_t *dst, const void *src, std::size_t nwords)
 		{
 			auto *b = reinterpret_cast<const unsigned char*>(src);
-			for (std::size_t i = 0; i < count; ++i)
+			for (std::size_t i = 0; i < nwords; ++i)
 			{
 				uint_fast32_t &d = dst[i];
 				d = 0;
@@ -81,10 +81,10 @@ namespace aes
 			}
 		}
 
-		void storewords(void *dst, const uint_fast32_t *src, std::size_t count)
+		void storewords(void *dst, const uint_fast32_t *src, std::size_t nwords)
 		{
 			auto *b = reinterpret_cast<unsigned char*>(dst);
-			for (std::size_t i = 0; i < count; ++i)
+			for (std::size_t i = 0; i < nwords; ++i)
 			{
 				uint_fast32_t s = src[i];
 				for (std::size_t bi = 0; bi < WORDBYTES; ++bi)
@@ -128,33 +128,23 @@ namespace aes
 			{
 				
 			}
-
-
 		}
 
 		//https://en.wikipedia.org/wiki/SHA-2
-		std::string sha256(const std::string &s)
+		std::string sha256(const void *data, std::size_t size)
 		{
+			auto raw = reinterpret_cast<const unsigned char*>(data);
 			std::uint_fast32_t hash[8] = {
 				0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
 				0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19};
-			std::size_t targetsize = s.size() + CHUNKLENBYTES + 1;
-			if (targetsize % CHUNKBYTES)
+			std::size_t targetsize = size + CHUNKLENBYTES + 1;
+			unsigned char rawbuf[CHUNKBYTES];
+			uint_fast32_t chunkbuf[CHUNKWORDS];
+			while (size > CHUNKBYTES)
 			{
-				targetsize += CHUNKBYTES - (targetsize % CHUNKBYTES);
-			}
-			std::string buff(s);
-			buff += 0x80;
-			buff.resize(targetsize, 0);
-			storelen(&buff[0] + (buff.size() - CHUNKLENBYTES), s.size());
-
-			auto ptr = reinterpret_cast<const ubyte*>(buff.data());
-			auto end = ptr + buff.size();
-			for (; ptr < end; ptr += CHUNKBYTES)
-			{
-				std::uint_fast32_t tmp[64];
-				for (std::size_t i = 0; i < CHUNKWORDS; ++i)
-				{ loadword(tmp[i], ptr + (i * WORDBYTES)); }
+				loadwords(chunkbuf, raw, CHUNKWORDS);
+				//process etc
+				raw += CHUNKBYTES;
 			}
 		}
 	}
