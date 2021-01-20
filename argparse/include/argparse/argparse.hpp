@@ -49,7 +49,8 @@
 //
 //	special arguments:
 //	  --: ignore any flags, treat all as positional arguments
-//	  -N: N = a number: treat next N arguments as positional arguments
+//	  -N: N > 0: treat next N arguments as positional arguments
+//	  -0: end a multi-argument parsing
 //	  -h/--help   : print help message
 //
 
@@ -654,6 +655,10 @@ namespace argparse
 						{
 							++begin;
 							ignore = std::stoul(tok.substr(1));
+							if (ignore == 0)
+							{
+								return ret;
+							}
 						}
 						else
 						{
