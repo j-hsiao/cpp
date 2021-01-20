@@ -42,6 +42,6 @@ int main()
 	};
 	for (const auto &feature : features)
 	{
-		std::cout << feature << ": " << cpuinfo::has(feature) << std::endl;
+		std::cout << feature << ": " << scpuinfo::has(feature) << std::endl;
 	}
 }

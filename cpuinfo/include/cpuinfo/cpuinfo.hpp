@@ -20,7 +20,17 @@
 namespace cpuinfo
 {
 	CPUINFO_API bool has(const char*);
+	/*
 	template<class T>
 	bool has(const T& s) { return has(s.c_str()); }
+	*/
+}
+namespace
+{
+	namespace scpuinfo
+	{
+		template<class T>
+		bool has(const T& s) { return cpuinfo::has(s.c_str()); }
+	}
 }
 #endif
