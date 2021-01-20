@@ -19,7 +19,7 @@ namespace aes
 #ifdef AES_DEBUG
 		auto *word = reinterpret_cast<const aes::ubyte*>(s);
 		std::cout << std::hex;
-		for (int j = 0; j < WORDBYTES; ++j)
+		for (int j = 0; j < k_wordbytes; ++j)
 		{
 			std::cout << '\t' << static_cast<unsigned int>(word[j]);
 		}
@@ -32,7 +32,7 @@ namespace aes
 	{
 #ifdef AES_DEBUG
 		auto state = reinterpret_cast<const aes::ubyte*>(s);
-		for (int i = 0; i < STATEBYTES; i += WORDBYTES)
+		for (int i = 0; i < STATEBYTES; i += k_wordbytes)
 		{
 			print_word(state + i);
 		}

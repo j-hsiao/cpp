@@ -63,7 +63,7 @@ namespace aes
 		return ret;
 	}
 
-	static const std::size_t WORDBITS = WORDBYTES * BYTEBITS;
+	static const std::size_t kWordbits = k_wordbytes * k_bytebits;
 
 //performance differences seem mostly because
 //didn't turn on optimization... CMAKE_BUILD_TYPE default was not Release?
@@ -102,14 +102,14 @@ namespace aes
 
 	inline AESWord rotate_right(AESWord v, std::size_t amt)
 	{
-		amt %= WORDBITS;
-		return rshift(v, amt) | lshift(v, (WORDBITS - amt));
+		amt %= kWordbits;
+		return rshift(v, amt) | lshift(v, (kWordbits - amt));
 	}
 
 #else
-	struct alignas(WORDBYTES) AESWord
+	struct alignas(k_wordbytes) AESWord
 	{
-		ubyte bytes[WORDBYTES];
+		ubyte bytes[k_wordbytes];
 	};
 	inline void xorwords(
 		AESWord &dst,
@@ -124,15 +124,15 @@ namespace aes
 
 	inline AESWord rotate_right(const AESWord &v, std::size_t amt)
 	{
-		amt %= WORDBITS;
+		amt %= kWordbits;
 		AESWord buff[2];
 		buff[0] = v;
 		buff[1] = v;
-		const ubyte *p = reinterpret_cast<ubyte*>(buff) + WORDBYTES - (amt / BYTEBITS);
-		std::size_t r = amt % BYTEBITS;
-		std::size_t l = BYTEBITS - r;
+		const ubyte *p = reinterpret_cast<ubyte*>(buff) + k_wordbytes - (amt / k_bytebits);
+		std::size_t r = amt % k_bytebits;
+		std::size_t l = k_bytebits - r;
 		AESWord ret;
-		for (int i = 0; i < WORDBYTES; ++i)
+		for (int i = 0; i < k_wordbytes; ++i)
 		{
 			ret.bytes[i] = (p[i] >> r) | (p[i - 1] << l);
 		}
@@ -215,7 +215,7 @@ namespace aes
 			std::memcpy(ptr, this, sizeof(*this));
 		}
 	};
-	static_assert(sizeof(AESWord) == WORDBYTES, "AESWord size is wrong");
+	static_assert(sizeof(AESWord) == k_wordbytes, "AESWord size is wrong");
 	static_assert(sizeof(AESState) == STATEBYTES, "AESState size is wrong");
 
 	typedef std::vector<AESWord, align::AlignedAllocator<AESWord>> AES_wordvec;

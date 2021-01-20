@@ -26,14 +26,12 @@ namespace aes
 	//------------------------------
 	// constants/enums
 	//------------------------------
-	enum AESVERSION { AES128 = 0, AES192 = 1, AES256 = 2 };
-	static const int AES_NO_ENDIAN = 0;
-	static const int AES_BIG_ENDIAN = 1;
-	static const int AES_LITTLE_ENDIAN = 2;
-	static const std::size_t BYTEBITS = 8;
-	static const std::size_t WORDBYTES = 4;
+	enum AESVersion : int { aes128 = 0, aes192 = 1, aes256 = 2 };
+	enum AESEndian : int { mix_endian = 0, big_endian = 1, little_endian = 2 };
+	static const std::size_t k_bytebits = 8;
+	static const std::size_t k_wordbytes = 4;
 	static const std::size_t STATEWORDS = 4;
-	static const std::size_t STATEBYTES = WORDBYTES * STATEWORDS;
+	static const std::size_t STATEBYTES = k_wordbytes * STATEWORDS;
 	static const std::size_t NUM_KBYTES[] = {16, 24, 32};
 
 	//------------------------------
@@ -48,7 +46,7 @@ namespace aes
 			static const int ENDIAN;
 			static std::size_t padding(std::size_t size) { return STATEBYTES - (size % STATEBYTES); }
 
-			AES(const void *key, AESVERSION version);
+			AES(const void *key, AESVersion version);
 
 			//encrypt a buffer, should be approprivately sized
 			void encrypt(void *data, std::size_t length) const;
@@ -93,11 +91,11 @@ namespace aes
 	//------------------------------
 	AES_API void make_key(
 		void *dst, const void *src, std::size_t srcsize,
-		AESVERSION version = AES128, int passes = 5);
+		AESVersion version = aes128, int passes = 5);
 	template<class T> T make_key(
-		const T &password, AESVERSION version = AES128, int passes = 5);
+		const T &password, AESVersion version = aes128, int passes = 5);
 	template<class T> AES aes(
-		const T &password, AESVERSION version = AES128);
+		const T &password, AESVersion version = aes128);
 
 
 
@@ -105,7 +103,7 @@ namespace aes
 	//template/inline implementations
 	//------------------------------
 	template<class T>
-	inline T make_key(const T &password, AESVERSION version, int passes)
+	inline T make_key(const T &password, AESVersion version, int passes)
 	{
 		static_assert(sizeof(typename T::value_type) == 1, "container should have value_type of 1 byte");
 		T ret(NUM_KBYTES[version], 0);
@@ -114,7 +112,7 @@ namespace aes
 	}
 
 	template<class T>
-	inline AES aes(const T &password, AESVERSION version)
+	inline AES aes(const T &password, AESVersion version)
 	{
 		auto k = make_key(password, version);
 		return {&k[0], version};

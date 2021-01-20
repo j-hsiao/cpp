@@ -174,7 +174,7 @@ void gmix_column(unsigned char *r) {
 
 void check_round()
 {
-	auto roundkeys = aes::expand_keys(aes128ex::key, aes::AES128);
+	auto roundkeys = aes::expand_keys(aes128ex::key, aes::aes128);
 	auto iroundkeys = aes::iexpand_keys(roundkeys);
 
 	aes::AESState state1;
@@ -188,10 +188,10 @@ void check_round()
 	state1 ^= roundkeys[0];
 	assert(std::memcmp(&state1, aes128ex::addkey0, 16) == 0);
 
-	state[0] = aes::MIX[0][src[0]] ^ aes::MIX[1][src[5]] ^ aes::MIX[2][src[10]] ^ aes::MIX[3][src[15]];
-	state[1] = aes::MIX[0][src[4]] ^ aes::MIX[1][src[9]] ^ aes::MIX[2][src[14]] ^ aes::MIX[3][src[3]];
-	state[2] = aes::MIX[0][src[8]] ^ aes::MIX[1][src[13]] ^ aes::MIX[2][src[2]] ^ aes::MIX[3][src[7]];
-	state[3] = aes::MIX[0][src[12]] ^ aes::MIX[1][src[1]] ^ aes::MIX[2][src[6]] ^ aes::MIX[3][src[11]];
+	state[0] = aes::k_mix[0][src[0]] ^ aes::k_mix[1][src[5]] ^ aes::k_mix[2][src[10]] ^ aes::k_mix[3][src[15]];
+	state[1] = aes::k_mix[0][src[4]] ^ aes::k_mix[1][src[9]] ^ aes::k_mix[2][src[14]] ^ aes::k_mix[3][src[3]];
+	state[2] = aes::k_mix[0][src[8]] ^ aes::k_mix[1][src[13]] ^ aes::k_mix[2][src[2]] ^ aes::k_mix[3][src[7]];
+	state[3] = aes::k_mix[0][src[12]] ^ aes::k_mix[1][src[1]] ^ aes::k_mix[2][src[6]] ^ aes::k_mix[3][src[11]];
 
 	assert(std::memcmp(&buff, aes128ex::mix0, 16) == 0);
 	state1 = buff ^ roundkeys[1];
@@ -199,17 +199,17 @@ void check_round()
 
 	for (std::size_t i = 0; i < aes::STATEBYTES; ++i)
 	{
-		reinterpret_cast<aes::ubyte*>(&buff)[i] = aes::SBOX[src[aes::shiftrows[i]]];
+		reinterpret_cast<aes::ubyte*>(&buff)[i] = aes::k_sbox[src[aes::k_shiftrows[i]]];
 	}
 
 	assert(std::memcmp(&buff, aes128ex::shift1, 16) == 0);
 
 //begin test backwards
 	state1 = buff;
-	state[0] = aes::IMIX[0][src[0]] ^ aes::IMIX[1][src[13]] ^ aes::IMIX[2][src[10]] ^ aes::IMIX[3][src[7]];
-	state[1] = aes::IMIX[0][src[4]] ^ aes::IMIX[1][src[1]] ^ aes::IMIX[2][src[14]] ^ aes::IMIX[3][src[11]];
-	state[2] = aes::IMIX[0][src[8]] ^ aes::IMIX[1][src[5]] ^ aes::IMIX[2][src[2]] ^ aes::IMIX[3][src[15]];
-	state[3] = aes::IMIX[0][src[12]] ^ aes::IMIX[1][src[9]] ^ aes::IMIX[2][src[6]] ^ aes::IMIX[3][src[3]];
+	state[0] = aes::k_imix[0][src[0]] ^ aes::k_imix[1][src[13]] ^ aes::k_imix[2][src[10]] ^ aes::k_imix[3][src[7]];
+	state[1] = aes::k_imix[0][src[4]] ^ aes::k_imix[1][src[1]] ^ aes::k_imix[2][src[14]] ^ aes::k_imix[3][src[11]];
+	state[2] = aes::k_imix[0][src[8]] ^ aes::k_imix[1][src[5]] ^ aes::k_imix[2][src[2]] ^ aes::k_imix[3][src[15]];
+	state[3] = aes::k_imix[0][src[12]] ^ aes::k_imix[1][src[9]] ^ aes::k_imix[2][src[6]] ^ aes::k_imix[3][src[3]];
 	buff ^= iroundkeys[iroundkeys.size() - 2];
 	assert(std::memcmp(&buff, aes128ex::shift0, 16) == 0);
 
@@ -225,8 +225,8 @@ void check_mix()
 {
 	for (std::size_t i = 0; i < 256; ++i)
 	{
-		assert(i == aes::IBOX[aes::SBOX[i]]);
-		assert(i == aes::SBOX[aes::IBOX[i]]);
+		assert(i == aes::k_ibox[aes::k_sbox[i]]);
+		assert(i == aes::k_sbox[aes::k_ibox[i]]);
 	}
 	aes::AESWord w1;
 	aes::AESWord w2;
@@ -258,11 +258,11 @@ void check_mix()
 		unsigned char check[4];
 		std::memcpy(check, s, 4);
 		gmix_column(check);
-		w1 = aes::MIX[0][aes::IBOX[s[0]]] ^ aes::MIX[1][aes::IBOX[s[1]]] ^ aes::MIX[2][aes::IBOX[s[2]]] ^ aes::MIX[3][aes::IBOX[s[3]]];
-		assert(memcmp(&w1, check, aes::WORDBYTES) == 0);
+		w1 = aes::k_mix[0][aes::k_ibox[s[0]]] ^ aes::k_mix[1][aes::k_ibox[s[1]]] ^ aes::k_mix[2][aes::k_ibox[s[2]]] ^ aes::k_mix[3][aes::k_ibox[s[3]]];
+		assert(memcmp(&w1, check, aes::k_wordbytes) == 0);
 
-		w2 = aes::IMIX[0][aes::SBOX[bw1[0]]] ^ aes::IMIX[1][aes::SBOX[bw1[1]]] ^ aes::IMIX[2][aes::SBOX[bw1[2]]] ^ aes::IMIX[3][aes::SBOX[bw1[3]]];
-		assert(memcmp(&w2, s, aes::WORDBYTES) == 0);
+		w2 = aes::k_imix[0][aes::k_sbox[bw1[0]]] ^ aes::k_imix[1][aes::k_sbox[bw1[1]]] ^ aes::k_imix[2][aes::k_sbox[bw1[2]]] ^ aes::k_imix[3][aes::k_sbox[bw1[3]]];
+		assert(memcmp(&w2, s, aes::k_wordbytes) == 0);
 	}
 	std::cout << "mixcols passed" << std::endl;
 }
@@ -270,8 +270,8 @@ void check_sboxes()
 {
 	for (int i = 0; i < 256; ++i)
 	{
-		assert(aes::SBOX[aes::IBOX[i]] == i);
-		assert(aes::IBOX[aes::SBOX[i]] == i);
+		assert(aes::k_sbox[aes::k_ibox[i]] == i);
+		assert(aes::k_ibox[aes::k_sbox[i]] == i);
 	}
 	std::cout << "sbox/ibox pass" << std::endl;
 }
@@ -287,7 +287,7 @@ void check128()
 	};
 	aes::AESState state;
 
-	auto roundkeys = aes::expand_keys(key, aes::AES128);
+	auto roundkeys = aes::expand_keys(key, aes::aes128);
 	auto iroundkeys = aes::iexpand_keys(roundkeys);
 	state << text;
 	aes::AES_plain::encrypt(state, roundkeys);
@@ -319,7 +319,7 @@ void check192()
 	};
 	aes::AESState state;
 
-	auto roundkeys = aes::expand_keys(key, aes::AES192);
+	auto roundkeys = aes::expand_keys(key, aes::aes192);
 	auto iroundkeys = aes::iexpand_keys(roundkeys);
 	state << text;
 	aes::AES_plain::encrypt(state, roundkeys);
@@ -347,7 +347,7 @@ void check256()
 		0x31, 0x9f, 0xbe, 0xea
 	};
 	aes::AESState state;
-	auto roundkeys = aes::expand_keys(key, aes::AES256);
+	auto roundkeys = aes::expand_keys(key, aes::aes256);
 	auto iroundkeys = aes::iexpand_keys(roundkeys);
 	state << text;
 	aes::AES_plain::encrypt(state, roundkeys);

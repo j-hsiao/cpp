@@ -6,16 +6,16 @@
 
 namespace aes
 {
-	extern const std::size_t NUM_ROUNDS[];
-	extern const std::size_t NUM_CONSTS[];
-	extern const std::size_t NUM_KWORDS[];
+	extern const std::size_t k_nrounds[];
+	extern const std::size_t k_nconsts[];
+	extern const std::size_t k_nkeywords[];
 
-	extern const ubyte SBOX[256];
-	extern const ubyte IBOX[256];
-	extern const ubyte shiftrows[16];
-	extern const ubyte ishiftrows[16];
+	extern const ubyte k_sbox[256];
+	extern const ubyte k_ibox[256];
+	extern const ubyte k_shiftrows[16];
+	extern const ubyte k_ishiftrows[16];
 
-	extern const AES_wordvec MIX[4];
-	extern const AES_wordvec IMIX[4];
+	extern const AES_wordvec k_mix[4];
+	extern const AES_wordvec k_imix[4];
 }
 #endif

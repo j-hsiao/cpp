@@ -6,7 +6,7 @@
 
 namespace aes
 {
-	AES_statevec expand_keys(const void *key, AESVERSION v);
+	AES_statevec expand_keys(const void *key, AESVersion v);
 	AES_statevec iexpand_keys(const AES_statevec &roundkeys);
 }
 #endif

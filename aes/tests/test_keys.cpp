@@ -14,14 +14,14 @@ bool cmp(const void *a, const void *b, std::size_t size)
 	const aes::ubyte *b2 = reinterpret_cast<const aes::ubyte*>(b);
 	if (std::memcmp(b1, b2, size))
 	{
-		for (std::size_t i = 0; i < size; i += aes::WORDBYTES)
+		for (std::size_t i = 0; i < size; i += aes::k_wordbytes)
 		{
-			for (std::size_t k = 0; k < aes::WORDBYTES; ++k)
+			for (std::size_t k = 0; k < aes::k_wordbytes; ++k)
 			{
 				std::cout << std::hex;
 				if (b1[i + k] != b2[i + k])
 				{
-					std::cout << "difference in word " << std::dec << (i / aes::WORDBYTES)
+					std::cout << "difference in word " << std::dec << (i / aes::k_wordbytes)
 						<< " byte " << k << ':' << std::hex
 						<< static_cast<unsigned int>(b1[i + k]) << " vs "
 						<< static_cast<unsigned int>(b2[i + k]) << std::endl;
@@ -39,7 +39,7 @@ void check_expand_keys256()
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
 	};
-	auto v = aes::expand_keys(key, aes::AES256);
+	auto v = aes::expand_keys(key, aes::aes256);
 	aes::ubyte expected[] = {
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
@@ -57,7 +57,7 @@ void check_expand_keys256()
 		0x1f, 0x54, 0xcc, 0xd0, 0x2f, 0xd8, 0x20, 0x68, 0x81, 0xea, 0x8d, 0xab, 0x21, 0x89, 0xb1, 0xb9,
 		0xd3, 0x1a, 0x3c, 0x17, 0xd2, 0x4b, 0x74, 0x3b, 0xa7, 0x88, 0xd2, 0xbf, 0x71, 0xa9, 0x36, 0xf3
 	};
-	std::size_t numrounds = aes::NUM_ROUNDS[aes::AES256];
+	std::size_t numrounds = aes::k_nrounds[aes::aes256];
 	assert(cmp(v.data(), expected, numrounds * aes::STATEBYTES));
 	std::cout << "aes256 key expansion passed" << std::endl;
 }
@@ -68,7 +68,7 @@ void check_iexpand_keys256()
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
 	};
-	auto v = aes::expand_keys(key, aes::AES256);
+	auto v = aes::expand_keys(key, aes::aes256);
 	auto r = aes::iexpand_keys(v);
 	aes::ubyte expected[] = {
 		0xd3, 0x1a, 0x3c, 0x17, 0xd2, 0x4b, 0x74, 0x3b, 0xa7, 0x88, 0xd2, 0xbf, 0x71, 0xa9, 0x36, 0xf3,
@@ -93,9 +93,9 @@ void check_iexpand_keys256()
 void check_expand_keys128()
 {
 	aes::ubyte key[] = "Thats my Kung Fu";
-	std::size_t roundkeyBytes = aes::NUM_ROUNDS[aes::AES128] * aes::STATEBYTES;
+	std::size_t roundkeyBytes = aes::k_nrounds[aes::aes128] * aes::STATEBYTES;
 
-	auto v = aes::expand_keys(key, aes::AES128);
+	auto v = aes::expand_keys(key, aes::aes128);
 	aes::ubyte expected[] = {
 		0x54, 0x68, 0x61, 0x74, 0x73, 0x20, 0x6d, 0x79, 0x20, 0x4b, 0x75, 0x6e, 0x67, 0x20, 0x46, 0x75,
 		0xe2, 0x32, 0xfc, 0xf1, 0x91, 0x12, 0x91, 0x88, 0xb1, 0x59, 0xe4, 0xe6, 0xd6, 0x79, 0xa2, 0x93,
@@ -116,7 +116,7 @@ void check_expand_keys128()
 void check_iexpand_keys128()
 {
 	auto key = "Thats my Kung Fu";
-	auto v = aes::expand_keys(key, aes::AES128);
+	auto v = aes::expand_keys(key, aes::aes128);
 	auto r = aes::iexpand_keys(v);
 	aes::ubyte expected[] = {
 		0x28, 0xfd, 0xde, 0xf8, 0x6d, 0xa4, 0x24, 0x4a, 0xcc, 0xc0, 0xa4, 0xfe, 0x3b, 0x31, 0x6f, 0x26,
@@ -137,17 +137,17 @@ void check_iexpand_keys128()
 
 void check_make_key()
 {
-	assert(aes::make_key("", 0, aes::AES128).size() == 16);
-	assert(aes::make_key("", 0, aes::AES192).size() == 24);
-	assert(aes::make_key("", 0, aes::AES256).size() == 32);
+	assert(aes::make_key("", 0, aes::aes128).size() == 16);
+	assert(aes::make_key("", 0, aes::aes192).size() == 24);
+	assert(aes::make_key("", 0, aes::aes256).size() == 32);
 
-	assert(aes::make_key("0123456789012345678901234567890123456789", 40, aes::AES128).size() == 16);
-	assert(aes::make_key("0123456789012345678901234567890123456789", 40, aes::AES192).size() == 24);
-	assert(aes::make_key("0123456789012345678901234567890123456789", 40, aes::AES256).size() == 32);
+	assert(aes::make_key("0123456789012345678901234567890123456789", 40, aes::aes128).size() == 16);
+	assert(aes::make_key("0123456789012345678901234567890123456789", 40, aes::aes192).size() == 24);
+	assert(aes::make_key("0123456789012345678901234567890123456789", 40, aes::aes256).size() == 32);
 
-	assert(aes::make_key("0123456789", 10, aes::AES128).size() == 16);
-	assert(aes::make_key("0123456789", 10, aes::AES192).size() == 24);
-	assert(aes::make_key("0123456789", 10, aes::AES256).size() == 32);
+	assert(aes::make_key("0123456789", 10, aes::aes128).size() == 16);
+	assert(aes::make_key("0123456789", 10, aes::aes192).size() == 24);
+	assert(aes::make_key("0123456789", 10, aes::aes256).size() == 32);
 
 	std::cout << "make keys passed" << std::endl;
 }

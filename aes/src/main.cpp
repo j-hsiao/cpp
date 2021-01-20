@@ -312,14 +312,14 @@ int argmain(int argc, char *argv[])
 	auto args = p.parsemain(argc, argv);
 
 	const std::string &mode = args.at("mode")[0];
-	std::map <std::string, aes::AESVERSION> versions = {
-		{"128", aes::AES128},
-		{"192", aes::AES192},
-		{"256", aes::AES256},
+	std::map <std::string, aes::AESVersion> versions = {
+		{"128", aes::aes128},
+		{"192", aes::aes192},
+		{"256", aes::aes256},
 	};
 	if (!versions.count(mode))
 	{ throw std::runtime_error("bad mode " + mode); }
-	aes::AESVERSION v = versions.at(mode);
+	aes::AESVersion v = versions.at(mode);
 
 	std::string key;
 	if (args.at("key")[0].size())

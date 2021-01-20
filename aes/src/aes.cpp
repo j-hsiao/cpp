@@ -280,7 +280,7 @@ namespace aes
 		static const dispatch d;
 		const AES_statevec roundkeys;
 		const AES_statevec iroundkeys;
-		implcls(const void *key, AESVERSION v):
+		implcls(const void *key, AESVersion v):
 			roundkeys(expand_keys(key, v)),
 			iroundkeys(iexpand_keys(roundkeys))
 		{}
@@ -288,7 +288,7 @@ namespace aes
 	const dispatch AES::implcls::d;
 
 
-	AES::AES(const void *key, AESVERSION v):
+	AES::AES(const void *key, AESVersion v):
 		impl(std::make_shared<implcls>(key, v))
 	{}
 

@@ -21,10 +21,10 @@ namespace aes
 		const AESState * const last = keys + roundkeys.size() - 1;
 
 		//dereference and access through data() improves speed by nearly 2x
-		auto mix0 = MIX[0].data();
-		auto mix1 = MIX[1].data();
-		auto mix2 = MIX[2].data();
-		auto mix3 = MIX[3].data();
+		auto mix0 = k_mix[0].data();
+		auto mix1 = k_mix[1].data();
+		auto mix2 = k_mix[2].data();
+		auto mix3 = k_mix[3].data();
 
 		data ^= *keys;
 		++keys;
@@ -38,7 +38,7 @@ namespace aes
 		}
 		for (std::size_t i = 0; i < STATEBYTES; ++i)
 		{
-			reinterpret_cast<ubyte*>(&buff)[i] = SBOX[src[shiftrows[i]]];
+			reinterpret_cast<ubyte*>(&buff)[i] = k_sbox[src[k_shiftrows[i]]];
 		}
 		data.xorinto(buff, *last);
 	}
@@ -52,10 +52,10 @@ namespace aes
 		const AESState * const last = keys + iroundkeys.size() - 1;
 
 		//dereference and access through data() improves speed by nearly 2x
-		auto imix0 = IMIX[0].data();
-		auto imix1 = IMIX[1].data();
-		auto imix2 = IMIX[2].data();
-		auto imix3 = IMIX[3].data();
+		auto imix0 = k_imix[0].data();
+		auto imix1 = k_imix[1].data();
+		auto imix2 = k_imix[2].data();
+		auto imix3 = k_imix[3].data();
 
 		data ^= *keys;
 		++keys;
@@ -69,7 +69,7 @@ namespace aes
 		}
 		for (std::size_t i = 0; i < STATEBYTES; ++i)
 		{
-			reinterpret_cast<ubyte*>(&buff)[i] = IBOX[src[ishiftrows[i]]];
+			reinterpret_cast<ubyte*>(&buff)[i] = k_ibox[src[k_ishiftrows[i]]];
 		}
 		data.xorinto(buff, *last);
 	}

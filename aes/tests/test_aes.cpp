@@ -17,7 +17,7 @@ void check128()
 	std::string expected(
 		"\x29\xc3\x50\x5f\x57\x14\x20\xf6\x40\x22\x99\xb3\x1a\x02\xd7\x3a",
 		16);
-	aes::AES a("Thats my Kung Fu", aes::AES128);
+	aes::AES a("Thats my Kung Fu", aes::aes128);
 	a.encrypt(s);
 	assert(s.substr(0, 16) == expected);
 	assert(s.size() == 32);
@@ -30,8 +30,8 @@ void check128()
 void check()
 {
 	std::string s("Two One Nine Two");
-	aes::AES a192("0123456789abcdef01234567", aes::AES192);
-	aes::AES a256("0123456789abcdef0124356789abcdef", aes::AES256);
+	aes::AES a192("0123456789abcdef01234567", aes::aes192);
+	aes::AES a256("0123456789abcdef0124356789abcdef", aes::aes256);
 
 	a192.encrypt(s);
 	assert(s.size() == 32);
@@ -55,9 +55,9 @@ void speed()
 {
 	std::string s("Two One Nine Two");
 	std::string key("0123456789abcdef0123456789abcdef");
-	aes::AES a128(key.data(), aes::AES128);
-	aes::AES a192(key.data(), aes::AES192);
-	aes::AES a256(key.data(), aes::AES256);
+	aes::AES a128(key.data(), aes::aes128);
+	aes::AES a192(key.data(), aes::aes192);
+	aes::AES a256(key.data(), aes::aes256);
 
 	timeutil::Timer t;
 
