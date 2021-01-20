@@ -1,13 +1,19 @@
 // pimpl helper
-// use a pimpl::ptr for implementations
-// in impl:
-//   define pimpl::details::operator()
-//   pimpl::details::cp(const T*)
+// use a pimpl::ptr as pointer to implementation
+// automatically provides copy/move constructors/assignments
+//     copy creates a new pointer copied from obj at previous pointer
+//     rather than copying the value of the pointer itself
+// to support incomplete types, pimpl::ptr<T>
+// requires users to define copy and release methods
+// default implementations can be made by using the FINISH_PIMPL macro
+// (just calls new/delete)
 #ifndef PIMPL_H
 #define PIMPL_H
 
 #include <utility>
 #include <memory>
+
+#define FINISH_PIMPL(a) namespace pimpl{ template<> void ptr<a>::release(a* x){delete x;} template<> a* ptr<a>::copy(const a *x){ return x ? new a(*x) : nullptr; } }
 
 namespace pimpl
 {
@@ -22,22 +28,18 @@ namespace pimpl
 			ptr(ptr &&o): p(o.p) { o.p = nullptr; }
 			ptr& operator=(const ptr &o)
 			{
-				return *this = copy(o.p);
+				if (p)
+				{
+					release(p);
+				}
+				p = copy(o.p);
+				return *this;
 			}
 			ptr& operator=(ptr &&o)
 			{
 				T *tmp = p;
 				p = o.p;
 				o.p = tmp;
-				return *this;
-			}
-			ptr& operator=(T* pointer)
-			{
-				if (p)
-				{
-					release(p);
-				}
-				p = pointer;
 				return *this;
 			}
 
@@ -56,6 +58,4 @@ namespace pimpl
 			T* p;
 	};
 }
-#define FINISH_PIMPL(a) namespace pimpl{ template<> void ptr<a>::release(a* x){delete x;} template<> a* ptr<a>::copy(const a *x){ return x ? a(*x) : x; } }
-
 #endif
