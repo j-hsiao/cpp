@@ -1,36 +1,13 @@
-#ifndef CPUINFO_H
-#define CPUINFO_H
-
-#ifndef CPUINFO_API
-
-#ifdef _WIN32
-
-#ifdef cpuinfo_EXPORTS
-#define CPUINFO_API __declspec(dllexport)
-#else
-#define CPUINFO_API __declspec(dllimport)
-#endif
-
-#else
-#define CPUINFO_API
-#endif
-
-#endif
+#ifndef CPUINFO_HPP
+#define CPUINFO_HPP
+#include <cpuinfo/cpuinfo.h>
+#include <string>
 
 namespace cpuinfo
 {
-	CPUINFO_API bool has(const char*);
-	/*
-	template<class T>
-	bool has(const T& s) { return has(s.c_str()); }
-	*/
-}
-namespace
-{
-	namespace scpuinfo
+	inline CPUINFO_API bool has(const std::string &feature)
 	{
-		template<class T>
-		bool has(const T& s) { return cpuinfo::has(s.c_str()); }
+		return ::cpuinfo_has(feature.c_str());
 	}
 }
 #endif

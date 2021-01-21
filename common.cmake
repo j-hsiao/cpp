@@ -3,6 +3,7 @@ if (NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE "Release" CACHE STRING "build type" FORCE)
 endif()
 
+option(ENABLE_IPO "enable interprocedural optimization (lto)" OFF)
 #enabling ipo
 if (ENABLE_IPO)
 	if("${CMAKE_VERSION}" VERSION_GREATER 3.9)
