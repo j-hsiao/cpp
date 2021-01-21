@@ -4,7 +4,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 project(timeutil)
 
-option(ENABLE_IPO "lto" ON)
 include("${CMAKE_CURRENT_LIST_DIR}/../common.cmake" NO_POLICY_SCOPE)
 
 add_library(timeutil INTERFACE)

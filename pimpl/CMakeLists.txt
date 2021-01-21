@@ -5,7 +5,6 @@ project(pimpl)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-option(ENABLE_IPO "lto" ON)
 option(BUILD_TESTS "build tests" ON)
 include("${CMAKE_CURRENT_LIST_DIR}/../common.cmake" NO_POLICY_SCOPE)
 

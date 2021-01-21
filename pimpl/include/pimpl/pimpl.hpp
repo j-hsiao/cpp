@@ -25,7 +25,7 @@ namespace pimpl
 
 			ptr(T* pointer): p(pointer){}
 			ptr(const ptr &o): p(copy(o.p)){}
-			ptr(ptr &&o): p(o.p) { o.p = nullptr; }
+			ptr(ptr &&o) noexcept : p(o.p) { o.p = nullptr; }
 			ptr& operator=(const ptr &o)
 			{
 				if (p)
@@ -35,7 +35,7 @@ namespace pimpl
 				p = copy(o.p);
 				return *this;
 			}
-			ptr& operator=(ptr &&o)
+			ptr& operator=(ptr &&o) noexcept
 			{
 				T *tmp = p;
 				p = o.p;

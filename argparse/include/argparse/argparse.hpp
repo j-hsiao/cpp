@@ -1,7 +1,7 @@
 //	simple header-only library for parsing arguments
 //
-//	add defintion ARGPARSE_MAIN
-//	to define main() calling argmain() function and handling errors
+//	add defintion NO_ARGPARSE_MAIN
+//	if don't want to use argmain()
 //
 //	argparse::Parser p(...);
 //	auto args = p.parsemain(int argc, char *argv[]);
@@ -677,7 +677,7 @@ namespace argparse
 	};
 }
 
-#ifdef ARGPARSE_MAIN
+#ifndef NO_ARGPARSE_MAIN
 int argmain(int argc, char *argv[]);
 
 int main(int argc, char *argv[])
