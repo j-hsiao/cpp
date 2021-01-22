@@ -5,7 +5,7 @@
 
 namespace cpuinfo
 {
-	inline CPUINFO_API bool has(const std::string &feature)
+	inline bool has(const std::string &feature)
 	{
 		return ::cpuinfo_has(feature.c_str());
 	}

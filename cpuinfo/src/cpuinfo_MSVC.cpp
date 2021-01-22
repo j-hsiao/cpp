@@ -23,7 +23,7 @@ namespace
 #if defined(_M_AMD64) || defined(_M_I86)  || defined(_M_IX86)
 #include <cpuinfo/intel.hpp>
 #include <intrin.h>
-using namespace cpuinfo
+using namespace cpuinfo;
 bool cpuinfo_has(const char *s)
 {
 	static bool initialized = 0;
