@@ -10,11 +10,11 @@ namespace timeutil
 	{
 		public:
 			std::clock_t tick;
-			void tic()
+			void tic() noexcept
 			{
 				tick = std::clock();
 			}
-			double toc()
+			double toc() noexcept
 			{
 				auto diff = std::clock() - tick;
 				return static_cast<double>(diff) / CLOCKS_PER_SEC;

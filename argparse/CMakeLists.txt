@@ -6,36 +6,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 include("${CMAKE_CURRENT_LIST_DIR}/../common.cmake" NO_POLICY_SCOPE)
 
 add_library(argparse INTERFACE)
-target_include_directories(
-	argparse
-	INTERFACE
-	$<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>
-	$<INSTALL_INTERFACE:include>
-)
-
-install(
-	TARGETS argparse
-	EXPORT argparseTargets
-)
-install(
-	FILES
-		"${CMAKE_CURRENT_LIST_DIR}/include/argparse/argparse.hpp"
-	DESTINATION
-		include/argparse
-)
-install(
-	EXPORT
-		argparseTargets
-	NAMESPACE argparse::
-	FILE argparseConfig.cmake
-	DESTINATION cmake
+install_project(
+	"${CMAKE_CURRENT_LIST_DIR}/include/argparse/argparse.hpp"
 )
 
 if (BUILD_TESTS)
-	add_executable(argtest ${CMAKE_CURRENT_LIST_DIR}/test.cpp)
-	target_link_libraries(argtest PRIVATE argparse)
-
-	install(
-		TARGETS argtest
-		RUNTIME DESTINATION tests)
+	add_subdirectory(tests)
 endif()

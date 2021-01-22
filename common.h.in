@@ -1,0 +1,14 @@
+#cmakedefine01 @PROJECT_NAME@_SHARED
+#if @PROJECT_NAME@_SHARED
+
+#ifdef @PROJECT_NAME@_EXPORTS
+#define @PROJECT_NAME@_API __declspec(dllexport)
+#else
+#define @PROJECT_NAME@_API __declspec(dllimport)
+#endif
+
+#else
+
+#define @PROJECT_NAME@_API
+
+#endif
