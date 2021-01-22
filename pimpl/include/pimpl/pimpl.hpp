@@ -10,52 +10,39 @@
 #ifndef PIMPL_H
 #define PIMPL_H
 
-#include <utility>
-#include <memory>
+#define PIMPL_CREATE(T) \
+	class pimpl\
+	{\
+		public:\
+			pimpl(T *pointer): p(pointer){}\
+			pimpl(const pimpl &o): p(copy(o.p)){}\
+			pimpl(pimpl &&o) noexcept: p(o.p){ o.p = nullptr; }\
+			pimpl& operator=(const pimpl &o);\
+			pimpl& operator=(pimpl &&o) noexcept\
+			{ T *tmp = p; p = o.p; o.p = tmp; return *this; }\
+			operator bool() const noexcept { return p; }\
+			T& operator*() { return *p; }\
+			const T& operator*() const { return *p; }\
+			T* operator->() { return p; }\
+			const T* operator->() const { return p; }\
+			\
+			~pimpl() { if (p) { release(p); } }\
+		private:\
+			static T* copy(const T*);\
+			static void release(T*);\
+			T *p;\
+	};\
 
-#define FINISH_PIMPL(a) namespace pimpl{ template<> void ptr<a>::release(a* x){delete x;} template<> a* ptr<a>::copy(const a *x){ return x ? new a(*x) : nullptr; } }
+#define PIMPL_FINALIZE(NS, T)\
+	NS::T* NS::pimpl::copy(const NS::T* o) { return new NS::T(*o); }\
+	void NS::pimpl::release(NS::T* o) { delete o; }\
+	NS::pimpl& NS::pimpl::operator=(const NS::pimpl &o)\
+	{ if (p && o) { *p = *o.p; return *this; } else if (p) { release(p); } p = copy(o.p); return *this; }\
 
-namespace pimpl
-{
-	template<class T>
-	class ptr
-	{
-		public:
-			~ptr() { if (p) { release(p); } }
+#define PIMPL_FINALIZE_NOCOPY(NS, T)\
+	NS::T* NS::pimpl::copy(const NS::T* o) { return new NS::T(*o); }\
+	void NS::pimpl::release(NS::T* o) { delete o; }\
+	NS::pimpl& NS::pimpl::operator=(const NS::pimpl &o)\
+	{ if (p) { release(p); } p = copy(o.p); return *this; }\
 
-			ptr(T* pointer): p(pointer){}
-			ptr(const ptr &o): p(copy(o.p)){}
-			ptr(ptr &&o) noexcept : p(o.p) { o.p = nullptr; }
-			ptr& operator=(const ptr &o)
-			{
-				if (p)
-				{
-					release(p);
-				}
-				p = copy(o.p);
-				return *this;
-			}
-			ptr& operator=(ptr &&o) noexcept
-			{
-				T *tmp = p;
-				p = o.p;
-				o.p = tmp;
-				return *this;
-			}
-
-			operator bool() const { return p; }
-
-			T& operator*() { return *p; }
-			const T& operator*() const { return *p; }
-
-			T* operator->() { return p; }
-			const T* operator->() const { return p; }
-
-		private:
-			static T* copy(const T*);
-			static void release(T*);
-
-			T* p;
-	};
-}
 #endif
