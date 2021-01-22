@@ -68,7 +68,7 @@
 #include <sstream>
 #include <vector>
 
-namespace argparse
+namespace { namespace argparse
 {
 	static const size_t multi = -1;
 	class StopParse: public std::exception {};
@@ -157,6 +157,17 @@ namespace argparse
 					throw std::runtime_error("no values to convert");
 				}
 				return this->as<T>();
+			}
+
+			template<class T>
+			operator std::vector<T>() const
+			{
+				std::vector<T> ret;
+				for (std::size_t i = 0; i < values.size(); ++i)
+				{
+					ret.push_back(as<T>(i));
+				}
+				return ret;
 			}
 
 			template<class T>
@@ -675,7 +686,7 @@ namespace argparse
 				return ret;
 			}
 	};
-}
+}}
 
 #ifndef NO_ARGPARSE_MAIN
 int argmain(int argc, char *argv[]);
