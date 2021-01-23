@@ -1,14 +1,29 @@
-#cmakedefine01 @PROJECT_NAME@_SHARED
-#if @PROJECT_NAME@_SHARED
+#ifndef @PROJECT_NAME_UPPER@_DLLCFG_H
+#define @PROJECT_NAME_UPPER@_DLLCFG_H
 
-#ifdef @PROJECT_NAME@_EXPORTS
-#define @PROJECT_NAME@_API __declspec(dllexport)
+//dll import/export
+#cmakedefine01 @PROJECT_NAME_UPPER@_SHARED
+#if @PROJECT_NAME_UPPER@_SHARED
+#ifdef @PROJECT_NAME_UPPER@_EXPORTS
+#define @PROJECT_NAME_UPPER@_API __declspec(dllexport)
 #else
-#define @PROJECT_NAME@_API __declspec(dllimport)
+#define @PROJECT_NAME_UPPER@_API __declspec(dllimport)
+#endif
+#else
+#define @PROJECT_NAME_UPPER@_API
 #endif
 
-#else
+//externc macro for C/C++
+#ifndef CPP_EXTERNC_BEGIN
 
-#define @PROJECT_NAME@_API
+#ifdef __cplusplus
+#define CPP_EXTERNC_BEGIN extern "C" {
+#define CPP_EXTERNC_END }
+#else
+#define CPP_EXTERNC_BEGIN
+#define CPP_EXTERNC_END
+#endif
+
+#endif
 
 #endif

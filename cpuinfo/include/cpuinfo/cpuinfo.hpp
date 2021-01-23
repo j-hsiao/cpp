@@ -6,8 +6,6 @@
 namespace cpuinfo
 {
 	inline bool has(const std::string &feature)
-	{
-		return ::cpuinfo_has(feature.c_str());
-	}
+	{ return ::cpuinfo__has(feature.c_str()); }
 }
 #endif

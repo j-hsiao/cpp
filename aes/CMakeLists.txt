@@ -1,200 +1,167 @@
-cmake_minimum_required (VERSION 3.0)
-
+cmake_minimum_required(VERSION 3.1)
+project(aes)
+include (CTest)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-project(aes)
+list(APPEND CMAKE_INSTALL_RPATH "\$ORIGIN/../lib")
+list(REMOVE_DUPLICATES CMAKE_INSTALL_RPATH)
 
-option(ENABLE_IPO "lto" OFF)
 include("${CMAKE_CURRENT_LIST_DIR}/../common.cmake" NO_POLICY_SCOPE)
-
-option(AES_USE_SSLPACKAGE "use find_package to find openssl (OFF = manually specify)" ON)
-option(AES_DEBUG "compile with aes debugging logging" OFF)
-set(AES_FORCE "" CACHE STRING "force choosing plain B, MB, or SSL impl")
-option(AES_BUILD_TESTS "build tests" ON)
 
 add_library(
 	aes
-	./src/aes_plain.cpp
-	./src/aes.cpp
-	./src/aes_consts.cpp
-	./src/aes_key.cpp)
-if (NOT BUILD_SHARED_LIBS)
-	target_compile_definitions(aes PUBLIC "AES_API=")
-endif()
-target_include_directories(
-	aes PUBLIC
-	$<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>
-	$<INSTALL_INTERFACE:include>
+	./src/plain.cpp
+	./src/keys.cpp
+	./src/consts.cpp
+	./src/impl.cpp
+)
+target_include_directories(aes PRIVATE "${CMAKE_CURRENT_LIST_DIR}/../tlog")
+
+list(
+	APPEND CMAKE_PREFIX_PATH 
+		"${CMAKE_INSTALL_PREFIX}/cmake"
+		"${CMAKE_INSTALL_PREFIX}/lib/cmake"
 )
 
-#------------------------------
-# link to openssl if found
-#------------------------------
-if (AES_USE_SSLPACKAGE)
-	find_package(OpenSSL)
-else()
-	set(OPENSSL_FOUND "")
-endif()
-if (NOT OPENSSL_FOUND)
-	message("failed to find openssl")
-	find_library(OPENSSL_CRYPTO_LIBRARY crypto)
-	get_property(osslcached CACHE OPENSSL_INCLUDE_DIR PROPERTY TYPE)
-	if (NOT osslcached)
-		unset(OPENSSL_INCLUDE_DIR CACHE)
-		set(OPENSSL_INCLUDE_DIR "" CACHE PATH "openssl include directory")
+foreach(dep sha256 os)
+	find_package(${dep} QUIET)
+	if (NOT ${dep}_FOUND)
+		build_dependency(${dep} "${CMAKE_CURRENT_LIST_DIR}/../${dep}")
 	endif()
+	find_export_package(${dep} REQUIRED)
+endforeach()
+target_link_libraries(
+	aes
+	PUBLIC sha256::sha256
+	PRIVATE os::os)
+
+#------------------------------
+# link to ssl impl if found
+#------------------------------
+option(AES_USE_SSL_PACKAGE "use find_package to get ssl" ON)
+if (AES_USE_SSL_PACKAGE)
+	find_package(OpenSSL)
 endif()
-if (OPENSSL_INCLUDE_DIR AND OPENSSL_CRYPTO_LIBRARY)
-	message("linking to openssl libcrypto")
-	target_compile_definitions(aes PRIVATE "AES_WITH_SSL")
-	target_sources(aes PRIVATE ./src/aes_ssl.cpp)
+if (NOT OpenSSL_FOUND OR NOT AES_USE_SSL_PACKAGE)
+	# mark_as_advanced(CLEAR FORCE) does not make the entry viewable with -L
+	# so delete/recreate to remove advanced-ness
+	set(tmp "${OPENSSL_INCLUDE_DIR}")
+	unset(OPENSSL_INCLUDE_DIR CACHE)
+	set(OPENSSL_INCLUDE_DIR "${tmp}" CACHE PATH "openssl include directory")
+
+	set(tmp "${OPENSSL_CRYPTO_LIBRARY}")
+	unset(OPENSSL_CRYPTO_LIBRARY CACHE)
+	set(OPENSSL_CRYPTO_LIBRARY "${tmp}" CACHE PATH "openssl encryption lib")
+endif()
+
+if (NOT OPENSSL_CRYPTO_LIBRARY)
+	find_library(OPENSSL_CRYPTO_LIBRARY NAMES crypto eay32)
+endif()
+if (OPENSSL_CRYPTO_LIBRARY AND IS_DIRECTORY "${OPENSSL_INCLUDE_DIR}")
+	target_sources(aes PRIVATE ./src/openssl.cpp)
 	target_link_libraries(aes PRIVATE "${OPENSSL_CRYPTO_LIBRARY}")
 	target_include_directories(aes PRIVATE "${OPENSSL_INCLUDE_DIR}")
+	target_compile_definitions(aes PRIVATE "AES_USE_SSL=1")
 else()
-	message("to use OpenSSL, please specify OPENSSL_INCLUDE_DIR and OPENSSL_CRYPTO_LIBRARY")
+	message("failed to find OpenSSL, set OPENSSL_INCLUDE_DIR:${OPENSSL_INCLUDE_DIR} and OPENSSL_CRYPTO_LIBRARY:${OPENSSL_CRYPTO_LIBRARY} to use ssl impl")
 endif()
 
 #------------------------------
-# dispatch to intrinsics if available
+# use x86/x64 aes intrinsics
 #------------------------------
-if (AES_FORCE)
-	target_compile_definitions(aes PRIVATE "AES_FORCE_${AES_FORCE}")
-else()
-	add_library(aes_aes OBJECT ./src/aes_aes.cpp)
-	if (NOT BUILD_SHARED_LIBS)
-		target_compile_definitions(aes_aes PUBLIC "AES_API=")
+
+option(AES_USE_AESNI "use aesni intrinsics" ON)
+option(AES_USE_SSE "use sse2/ssse3/avx2 intrinsics" ON)
+if (AES_USE_AESNI)
+	target_sources(aes PRIVATE ./src/aesintrin.cpp)
+	target_compile_definitions(aes PRIVATE AES_USE_AESNI=1)
+	if (CMAKE_CXX_COMPILER_ID STREQUAL GNU)
+		target_compile_options(aes PRIVATE -maes -msse2)
 	endif()
-	target_include_directories(aes_aes PRIVATE ./include)
-	if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-		target_compile_options(aes_aes PRIVATE -maes -msse2)
+endif()
+
+if (AES_USE_SSE)
+	target_sources(aes PRIVATE ./src/sse.cpp)
+	if (CMAKE_CXX_COMPILER_ID STREQUAL GNU)
+		target_compile_options(aes PRIVATE -msse2 -mssse3 -mavx2 -msse4.1)
 	endif()
-	target_sources(aes PRIVATE $<TARGET_OBJECTS:aes_aes>)
-	#need cpuinfo to dispatch if not force
-	if (NOT TARGET cpuinfo)
-		add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../cpuinfo" "cpuinfo")
+	target_compile_definitions(aes PRIVATE AES_USE_SSE=1)
+endif()
+if (AES_USE_AESNI OR AES_USE_SSE)
+	find_package(cpuinfo QUIET)
+	if (NOT cpuinfo_FOUND)
+		build_dependency(cpuinfo "${CMAKE_CURRENT_LIST_DIR}/../cpuinfo")
 	endif()
-	target_link_libraries(aes PRIVATE cpuinfo)
+	find_export_package(cpuinfo REQUIRED)
+	target_link_libraries(aes PRIVATE cpuinfo::cpuinfo)
 endif()
 
-if (AES_DEBUG)
-	target_compile_definitions(aes PRIVATE "AES_DEBUG")
-endif()
 
-include (TestBigEndian)
-TEST_BIG_ENDIAN(IS_BIG_ENDIAN)
-if(IS_BIG_ENDIAN)
-	target_compile_definitions(aes PRIVATE BIG_ENDIAN)
-else()
-	target_compile_definitions(aes PRIVATE LITTLE_ENDIAN)
-endif()
+configure_dll()
+install_project(include/aes)
 
-if (NOT TARGET argparse)
-	add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../argparse" argparse)
-endif()
-add_executable(aestool ./src/main.cpp)
-target_link_libraries(aestool PRIVATE aes argparse)
-target_include_directories(aestool PRIVATE ${CMAKE_CURRENT_LIST_DIR}/include)
+#------------------------------
+# use avx2, sse2/3, ssse3
+#------------------------------
+#TODO: implement this
+#add_library(sse_intrin OBJECT ./src/sse.cpp)
+#target_include_directories(
+	#sse_intrin PRIVATE
+	#"${CMAKE_CURRENT_LIST_DIR}/include"
+	#"${CMAKE_CURRENT_BINARY_DIR}/include"
+	#"${CMAKE_INSTALL_PREFIX}/include"
+#)
+#if (CMAKE_CXX_COMPILER_ID STREQUAL GNU)
+	#target_compile_options(sse_intrin PRIVATE -msse3 -msse2 -mssse3 -mavx2)
+#endif()
+#target_sources(aes PRIVATE $<TARGET_OBJECTS:sse_intrin>)
 
+#------------------------------
+# aes encrypt/decrypt tool
+#------------------------------
+find_package(argparse QUIET)
+if (NOT argparse_FOUND)
+	build_dependency(argparse "${CMAKE_CURRENT_LIST_DIR}/../argparse")
+endif()
+find_package(argparse REQUIRED)
+find_package(timeutil QUIET)
+if (NOT timeutil_FOUND)
+	build_dependency(timeutil "${CMAKE_CURRENT_LIST_DIR}/../timeutil")
+endif()
+find_package(timeutil REQUIRED)
+
+add_executable(aes_exe src/main.cpp)
+set_target_properties(aes_exe PROPERTIES OUTPUT_NAME aes)
+target_link_libraries(
+	aes_exe
+	PRIVATE
+	aes
+	sha256::sha256
+	os::os
+	argparse::argparse
+	timeutil::timeutil
+)
 install(
-	TARGETS
-		aes
-	EXPORT
-		aesTargets
+	TARGETS aes_exe
 	RUNTIME DESTINATION bin
-	ARCHIVE DESTINATION lib
-	LIBRARY DESTINATION lib
-)
-install(
-	TARGETS
-		aestool
-	RUNTIME DESTINATION bin
-)
-install(
-	FILES
-		"${CMAKE_CURRENT_LIST_DIR}/include/aes/aes.hpp"
-	DESTINATION
-		include/aes
 )
 
-# this creates a .cmake file that
-# you can include to link to the headers/binaries
-# built within the build tree
-# otherwise, this does nothing
-# docs say something about crosscompiling or something
-# not really sure what that's all about
-export(
-	EXPORT aesTargets
-	FILE "${CMAKE_BINARY_DIR}/exports/aes/aesExports.cmake"
-	NAMESPACE aes::
-)
-# add the aesConfig.cmake to DESTINATION
-# (after install, use this to link to lib)
-install(
-	EXPORT aesTargets
-	DESTINATION cmake
-	NAMESPACE aes::
-	FILE aesConfig.cmake
-)
+if (BUILD_TESTING)
 
-#------------------------------
-# tests
-#------------------------------
-if (AES_BUILD_TESTS)
-	if (NOT TARGET timeutil)
-		add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../timeutil" timeutil)
-	endif()
+	add_executable(types tests/types.cpp)
+	target_link_libraries(types PRIVATE aes)
+	add_test(NAME types COMMAND types)
 
-	add_executable(
-		aes_testkeys_b
-		./tests/test_keys.cpp
-		./src/aes_key.cpp
-		./src/aes_consts.cpp)
-	target_include_directories(
-		aes_testkeys_b
-		PRIVATE
-		${CMAKE_CURRENT_LIST_DIR}/include)
-	target_compile_definitions(
-		aes_testkeys_b PRIVATE AES_FORCE_B AES_DEBUG "AES_API=")
+	add_executable(keys tests/keys.cpp)
+	target_link_libraries(keys PRIVATE aes)
+	add_test(NAME keys COMMAND keys)
 
+	add_executable(plain tests/plain.cpp)
+	target_link_libraries(plain PRIVATE aes timeutil::timeutil)
+	add_test(NAME plain COMMAND plain)
 
-	add_executable(
-		aes_testkeys_mb
-		./tests/test_keys.cpp
-		./src/aes_key.cpp
-		./src/aes_consts.cpp)
-	target_include_directories(
-		aes_testkeys_mb
-		PRIVATE
-		${CMAKE_CURRENT_LIST_DIR}/include)
-	target_compile_definitions(
-		aes_testkeys_mb PRIVATE AES_FORCE_MB AES_DEBUG "AES_API=")
-
-	add_executable(
-		aes_testplain
-		./tests/test_plain.cpp
-		./src/aes_plain.cpp
-		./src/aes_key.cpp
-		./src/aes_consts.cpp)
-	target_include_directories(
-		aes_testplain
-		PRIVATE
-		${CMAKE_CURRENT_LIST_DIR}/include)
-	target_compile_definitions(
-		aes_testplain PRIVATE AES_DEBUG "AES_API=")
-	if (AES_FORCE)
-		target_compile_definitions(
-			aes_testplain PRIVATE AES_FORCE_${AES_FORCE})
-	endif()
-
-	add_executable(aes_test ./tests/test_aes.cpp)
-	target_link_libraries(aes_test PRIVATE aes timeutil)
-
-	install(
-		TARGETS
-			aes_test
-			aes_testkeys_mb
-			aes_testkeys_b
-		RUNTIME DESTINATION tests
-	)
+	add_executable(aes_test tests/aes.cpp)
+	target_link_libraries(aes_test PRIVATE aes timeutil::timeutil)
+	add_test(NAME aes COMMAND aes_test)
 endif()

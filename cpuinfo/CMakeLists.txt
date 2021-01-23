@@ -7,23 +7,27 @@ include("${CMAKE_CURRENT_LIST_DIR}/../common.cmake" NO_POLICY_SCOPE)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-option(BUILD_TESTS "build tests?" ON)
 option(CPUINFO_DEBUG "build with debug logs?" OFF)
 
-if (MSVC)
-	add_library(cpuinfo ./src/cpuinfo_MSVC.cpp)
+if (MSVC OR MINGW)
+	add_library(cpuinfo ./src/cpuinfo_win.cpp)
 else()
-	add_library(cpuinfo ./src/cpuinfo_GNU.cpp)
+	add_library(cpuinfo ./src/cpuinfo_gnu.cpp)
 endif()
-if (CPUINFO_DEBUG)
-	target_compile_definitions(cpuinfo PRIVATE CPUINFO_DEBUG)
-endif()
-configure_dll()
-install_project(
-	"${CMAKE_CURRENT_LIST_DIR}/include/cpuinfo/cpuinfo.h"
-	"${CMAKE_CURRENT_LIST_DIR}/include/cpuinfo/cpuinfo.hpp"
+target_compile_definitions(
+	cpuinfo
+	PRIVATE
+	"CPUINFO_DEBUG=$<BOOL:${CPUINFO_DEBUG}>"
 )
+configure_dll()
+install_project(include/cpuinfo)
+target_include_directories(cpuinfo PRIVATE "${CMAKE_CURRENT_LIST_DIR}/../tlog")
 
-if (BUILD_TESTS)
-	add_subdirectory(tests)
+add_executable(getcpuinfo ./src/main.cpp)
+target_link_libraries(getcpuinfo PRIVATE cpuinfo)
+if (BUILD_TESTING)
+	install(
+		TARGETS getcpuinfo
+		RUNTIME DESTINATION tests
+	)
 endif()

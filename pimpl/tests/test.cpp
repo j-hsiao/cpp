@@ -4,17 +4,16 @@
 
 namespace
 {
-	class myclass
+	class MyClass
 	{
 		public:
-			myclass(int z);
+			MyClass(int z);
 			struct c;
 			void gets() const;
-			PIMPL_CREATE(c)
-			pimpl impl;
+			PIMPL_CREATE(c) impl;
 	};
 
-	struct myclass::c
+	struct MyClass::c
 	{
 		int a;
 		c(int z): a(z) { std::cout << "pimpl made" << std::endl; }
@@ -24,17 +23,17 @@ namespace
 		c& operator=(const c&o) = default;
 	};
 
-	PIMPL_FINALIZE_NOCOPY(myclass, c)
+	PIMPL_FINALIZE(MyClass, c)
 
-	myclass::myclass(int z): impl(new c(z)){}
-	void myclass::gets() const{ std::cout << impl->a << std::endl;}
+	MyClass::MyClass(int z): impl(new c(z)){}
+	void MyClass::gets() const{ std::cout << impl->a << std::endl;}
 
 }
 
 int main()
 {
-	myclass c1(1);
-	myclass c2(2);
+	MyClass c1(1);
+	MyClass c2(2);
 
 	c1.gets();
 	c2.gets();
@@ -54,7 +53,7 @@ int main()
 	assert(!c2.impl);
 
 	std::cout << "set c2 to 3" << std::endl;
-	c2.impl = new myclass::c(3);
+	c2.impl = new MyClass::c(3);
 	assert(c2.impl->a == 3);
 	c2.gets();
 

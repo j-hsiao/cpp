@@ -1,0 +1,287 @@
+#define SHA256_BIG_ENDIAN 1
+#define SHA256_LITTLE_ENDIAN 2
+#define SHA256_MIXED_ENDIAN 3
+
+#define SHA256_ENDIAN SHA256_@SHA256_ENDIAN@_ENDIAN
+
+#include <string.h>
+
+
+size_t sha256__normalized_size(size_t numChars)
+{
+#if CHAR_BIT == 8
+	return numChars;
+#else
+	size_t totalbits = numChars * CHAR_BIT
+	return (
+		(totalbits / sha256__Byte_Bits)
+		+ (totalbits % sha256__Byte_Bits > 0));
+#endif
+}
+size_t sha256__unnormalized_size(size_t numBytes)
+{
+#if CHAR_BIT == 8
+	return numBytes;
+#else
+	return (numBytes * sha256__Byte_Bits) / CHAR_BIT;
+#endif
+}
+
+
+
+#if CHAR_BIT == 8
+sha256__Byte* sha256__normalize(
+	sha256__Byte *normed, const unsigned char *raw, size_t numChars)
+{
+	memcpy(normed, raw, numChars);
+	return normed;
+}
+unsigned char* sha256__unnormalize(
+	unsigned char *raw, const sha256__Byte *normed, size_t numChars)
+{ 
+	memcpy(raw, normed, numChars);
+	return raw;
+}
+#else
+sha256__Byte * sha256__normalize(
+	sha256__Byte *normed, const unsigned char *raw, size_t numChars)
+{
+	sha256__Byte *o = normed;
+	size_t bit = 0;
+	unsigned char *end = raw + numChars;
+	if (numChars) { *o = 0; }
+	for (; raw < end; ++raw)
+	{
+		*o |= (*raw) << bit
+		*o &= Sha256ByteMask;
+		++o;
+		size_t bufbit = Sha256ByteBits - bit;
+		while bufbit < CHAR_BIT
+		{
+			*o = (*raw >> bufbit) & Sha256ByteMask;
+			bufbit += Sha256ByteBits;
+		}
+		bit = CHAR_BIT - (bufbit - Sh256ByteBits);
+	}
+	return normed;
+}
+unsigned char* sha256__unnormalize(
+	unsigned char *raw, const sha256__Byte *normed, size_t numChars)
+{
+	unsigned char *o = raw;
+	unsigned char *end = raw + numChars;
+	size_t bit = 0;
+	for (; o < end; ++o)
+	{
+		*o = normed >> bit;
+		size_t bufbit = Sha256ByteBits - bit;
+		while bufbit < CHAR_BIT
+		{
+			++normed;
+			*o |= normed << bufbit;
+			bufbit += Sha256ByteBits;
+		}
+		bit = CHAR_BIT - (bufbit - Sha256ByteBits);
+	}
+	return raw;
+}
+#endif
+
+
+#if CHAR_BIT == 8 && defined(UINT32_MAX) && (SHA256_ENDIAN == SHA256_BIG_ENDIAN || SHA256_ENDIAN == SHA256_LITTLE_ENDIAN)
+#if SHA256_ENDIAN == SHA256_BIG_ENDIAN
+inline void sha256__load_words(sha256__Word *words, const sha256__Byte *normed, size_t numBytes)
+{
+	size_t tail = numBytes % sha256__Word_Bytes;
+	if (tail)
+	{ words[numBytes / sha256__Word_Bytes] = 0; }
+	memcpy(words, normed, numBytes);
+}
+void sha256__store_words(sha256__Byte *normed, const sha256__Word *words, size_t numChars)
+{ memcpy(normed, words, numChars); }
+sha256__Byte sha256__get_byte(sha256__Word word, size_t num)
+{ return ((sha256__Byte*)(&word))[num]; }
+
+inline void sha256__set_byte(sha256__Word *word, sha256__Byte val, size_t num)
+{ ((sha256__Byte*)(word))[num] = val; }
+
+#elif SHA256_ENDIAN == SHA256_LITTLE_ENDIAN
+inline void sha256__load_words(
+	sha256__Word *words, const sha256__Byte *normed, size_t numChars)
+{
+	size_t tail = numChars % sha256__Word_Bytes;
+	const sha256__Byte * const end = normed + numChars - tail;
+	sha256__Byte *dst = (sha256__Byte*)(words);
+	while (normed < end)
+	{
+		dst[3] = normed[0];
+		dst[2] = normed[1];
+		dst[1] = normed[2];
+		dst[0] = normed[3];
+		normed += sha256__Word_Bytes;
+		dst += sha256__Word_Bytes;
+	}
+	if (tail)
+	{
+		for (size_t i = 0; i < tail; ++i)
+		{ dst[sha256__Word_Bytes - (i + 1)] = end[i]; }
+		for (size_t i = tail; i < sha256__Word_Bytes; ++i)
+		{ dst[sha256__Word_Bytes - (i + 1)] = 0; }
+	}
+}
+void sha256__store_words(sha256__Byte *normed, const sha256__Word *words, size_t numChars)
+{
+	size_t tail = numChars % sha256__Word_Bytes;
+	const sha256__Byte * const end = normed + numChars - tail;
+	sha256__Byte *src = (sha256__Byte*)(words);
+	while (normed < end)
+	{
+		normed[0] = src[3];
+		normed[1] = src[2];
+		normed[2] = src[1];
+		normed[3] = src[0];
+		normed += sha256__Word_Bytes;
+		src += sha256__Word_Bytes;
+	}
+	if (tail)
+	{
+		for (size_t i = 0; i < tail; ++i)
+		{
+			normed[i] = src[sha256__Word_Bytes - (i + 1)];
+		}
+	}
+}
+sha256__Byte sha256__get_byte(sha256__Word word, size_t num)
+{ return ((sha256__Byte*)(&word))[(sha256__Word_Bytes - 1) - num]; }
+
+inline void sha256__set_byte(sha256__Word *word, sha256__Byte val, size_t num)
+{ ((sha256__Byte*) word)[(sha256__Word_Bytes - 1) - num] = val; }
+#endif
+#else
+//CHAR_BIT != 8 or undefined UINT32_MAX or mixed endian
+void sha256__load_words(sha256__Word *words, const sha256__Byte *normed, size_t numChars)
+{
+	size_t tail = numChars % sha256__Word_Bytes;
+	const sha256__Byte * const end = normed + numChars - tail;
+	while (normed < end)
+	{
+		size_t shift = sha256__Word_Bits - sha256__Byte_Bits;
+		*words = (sha256__Word)(normed[0]) << shift;
+		for (size_t i = 1; i < 4; ++i)
+		{
+			shift -= sha256__Byte_Bits;
+			*words |= (sha256__Word)(normed[i]) << shift;
+		}
+		++words;
+		normed += sha256__Word_Bytes;
+	}
+	if (tail)
+	{
+		size_t shift = sha256__Word_Bits - sha256__Byte_Bits;
+		*words = (sha256__Word)(normed[0]) << shift;
+		for (size_t i = 1; i < tail; ++i)
+		{
+			shift -= sha256__Byte_Bits;
+			*words |= (sha256__Word)(normed[i]) << shift;
+		}
+	}
+}
+void sha256__store_words(sha256__Byte *normed, const sha256__Word *words, size_t numChars)
+{
+	size_t tail = numChars % sha256__Word_Bytes;
+	const sha256__Byte * const end = normed + numChars - tail;
+	while (normed < end)
+	{
+		size_t shift = sha256__Word_Bits - sha256__Byte_Bits;
+		normed[0] = (sha256__Byte)((*words >> shift) & SHA256_Byte_Mask);
+		for (size_t i = 1; i < 4; ++i)
+		{
+			shift -= sha256__Byte_Bits;
+			normed[i] = (sha256__Byte)((*words >> shift) & SHA256_Byte_Mask);
+		}
+		++words;
+		normed += sha256__Word_Bytes;
+	}
+	if (tail)
+	{
+		size_t shift = sha256__Word_Bits - sha256__Byte_Bits;
+		normed[0] = (sha256__Byte)((*words >> shift) & SHA256_Byte_Mask);
+		for (size_t i = 1; i < tail; ++i)
+		{
+			shift -= sha256__Byte_Bits;
+			normed[i] = (sha256__Byte)((*words >> shift) & SHA256_Byte_Mask);
+		}
+	}
+}
+sha256__Byte sha256__get_byte(sha256__Word word, size_t num)
+{
+	size_t shift = (sha256__Word_Bytes - (num + 1)) * sha256__Byte_Bits;
+	return (sha256__Byte)((word >> shift) & SHA256_Byte_Mask);
+}
+inline void sha256__set_byte(sha256__Word *word, sha256__Byte val, size_t num)
+{
+	static const sha256__Word clear[] = {0x00FFFFFF, 0xFF00FFFF, 0xFFFF00FF, 0xFFFFFF00};
+	size_t shift = ((sha256__Word_Bytes - 1) - num) * sha256__Byte_Bits;
+	*word = (*word & clear[num]) | (((sha256__Word)(val)) << shift);
+}
+
+#endif
+
+
+sha256__Word sha256__rrot(sha256__Word word, size_t bits)
+{
+#ifdef UINT32_MAX
+	return word >> bits | word << (sha256__Word_Bits - bits);
+#else
+	return (word >> bits | word << (sha256__Word_Bits - bits)) & SHA256_Word_Mask;
+#endif
+}
+
+sha256__Word sha256__lrot(sha256__Word word, size_t bits)
+{
+#ifdef UINT32_MAX
+	return word << bits | word >> (sha256__Word_Bits - bits);
+#else
+	return (word << bits | word >> (sha256__Word_Bits - bits)) & SHA256_Word_Mask;
+#endif
+}
+
+inline void sha256__to_hex(char *buf, const void *d, size_t nbytes)
+{
+	const sha256__Byte *data = (const sha256__Byte*)(d);
+	static const char hexmap[17] = "0123456789ABCDEF";
+	for (size_t i = 0; i < nbytes; ++i)
+	{
+		buf[2 * i] = hexmap[(data[i] >> 4) & 0xF];
+		buf[(2 * i) + 1] = hexmap[data[i] & 0xF];
+	}
+}
+inline int sha256__from_hex(void *d, const char *buf, size_t nbytes)
+{
+	static sha256__Byte hexmap[256];
+	static bool init = 1;
+	if (init)
+	{
+		for (size_t i = 0; i < 256; ++i)
+		{
+			hexmap[i] = 0xFF;
+		}
+		for (sha256__Byte i = 0; i < 16; ++i)
+		{ hexmap["0123456789abcdef"[i]] = i; }
+		for (sha256__Byte i = 10; i < 16; ++i)
+		{ hexmap["ABCDEF"[i - 10]] = i; }
+		init = 0;
+	}
+	sha256__Byte *data = (sha256__Byte*)(d);
+	for (size_t i = 0; i < nbytes; ++i)
+	{
+		if (
+			(hexmap[buf[2 * i]] == 0xFF)
+			|| (hexmap[buf[(2 * i) + 1]] == 0xFF))
+		{
+			return -1;
+		}
+		data[i] = (hexmap[buf[2 * i]] << 4) | hexmap[buf[(2 * i) + 1]];
+	}
+	return 0;
+}

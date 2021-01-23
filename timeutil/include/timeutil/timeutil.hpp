@@ -1,12 +1,26 @@
+#include <cstddef>
 #include <chrono>
 #include <ctime>
 #include <thread>
 
-
 namespace timeutil
 {
-	//use std::clock for execution time
 	class Timer
+	{
+		public:
+			std::chrono::high_resolution_clock::time_point tick;
+
+			void tic() noexcept
+			{ tick = std::chrono::high_resolution_clock::now(); }
+			double toc() noexcept
+			{
+				auto duration = std::chrono::high_resolution_clock::now() - tick;
+				return std::chrono::duration_cast<std::chrono::duration<double>>(
+					duration).count();
+			}
+	};
+	//use clock_t (so affected by clock cycles but not by sleeps etc)
+	class Clocker
 	{
 		public:
 			std::clock_t tick;
