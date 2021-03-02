@@ -306,6 +306,7 @@ const char* os__get_sysdir(const char *name)
 		{"playlists", FOLDERID_Playlists},
 		{"printhood", FOLDERID_PrintHood},
 		{"profile", FOLDERID_Profile},
+		{"home", FOLDERID_Profile},
 		{"programdata", FOLDERID_ProgramData},
 		{"programfiles", FOLDERID_ProgramFiles},
 		{"programfilesx64", FOLDERID_ProgramFilesX64},

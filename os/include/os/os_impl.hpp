@@ -122,7 +122,7 @@ namespace os
 		std::string buf(chunksize, '\0');
 		std::size_t start = 0;
 		char *s;
-		while (s = ::fgets(&buf[start], buf.size() - start, tptr))
+		while (s = ::fgets(&buf[start], static_cast<int>(buf.size() - start), tptr))
 		{
 			char check = buf[buf.size() - 2];
 			if (check && check != '\n')

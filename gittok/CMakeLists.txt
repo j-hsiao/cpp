@@ -21,7 +21,7 @@ foreach(dep os argparse sha256 aes)
 endforeach()
 
 
-option(GITTOK_DEBUG "debugging" ON)
+option(GITTOK_DEBUG "debugging" OFF)
 add_executable(gittok ./src/gittok.cpp)
 target_include_directories(
 	gittok
@@ -38,3 +38,7 @@ target_link_libraries(
 		argparse::argparse
 		sha256::sha256
 )
+
+install(
+	TARGETS gittok
+	RUNTIME DESTINATION bin)
