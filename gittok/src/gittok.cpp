@@ -22,23 +22,30 @@ int argmain(int argc, char *argv[])
 		{
 			{{"prompt"}, "the prompt", -1},
 			{{"-a", "--add"}, "name of token to add", 1, {""}},
-			{{"-t", "--token"}, "token to add", 1, {""}}
+			{{"-t", "--token"}, "token to add", 1, {""}},
+			{{"--show"}, "show the token from input", 0}
 		},
 		"github ASK_PASS to use password with git O_AUTH tokens. "
 		"tokens should be encrypted and stored in %profile% (WINDOWS) or $HOME (linux). "
 	);
 	auto args = p.parsemain(argc, argv);
-	std::stringstream ss;
-	std::string homedir = os::get_sysdir("home");
+
+	std::string gittokDir;
+	try
+	{ gittokDir = os::get_env("GITTOK_DIR"); }
+	catch (os::NotFound &e)
+	{
+		gittokDir = os::get_sysdir("home");
+		if (!gittokDir.size())
+		{ throw std::runtime_error("could not determine home directory");}
+		gittokDir = os::Path(gittokDir) + ".gittok";
+	}
+
+	if (!os::Filenode(gittokDir).exists())
+	{ os::makedirs(gittokDir); }
+	os::Path tokenpath(gittokDir);
 	os::Term term("rb");
-	if (!homedir.size())
-	{ throw std::runtime_error("could not determine home directory"); }
-	os::Path tokenpath(homedir);
-	tokenpath += ".gittok";
-	os::Filenode tokdir(tokenpath);
-	if (!tokdir.exists())
-	{ os::makedirs(tokenpath); }
-	if (args["add"][0].size() && args["token"][0].size())
+	if (args["add"][0].size())
 	{
 		tokenpath += args["add"][0];
 		os::Filenode target(tokenpath);
@@ -52,53 +59,69 @@ int argmain(int argc, char *argv[])
 				return 0;
 			}
 		}
+		std::string token = args["token"][0];
+		if (!token.size())
+		{
+			if (!args["show"].as<bool>())
+			{ term.hide_input(); }
+			std::cerr << "token: " << std::flush;
+			token = term.readline();
+			if (!args["show"].as<bool>())
+			{ std::cerr << std::endl; }
+		}
+
 		std::cerr << "password: " << std::flush;
 		term.hide_input();
 		std::string password = term.readline();
+		std::cerr << std::endl;
 		term.show_input();
 		for (char c  : password)
 		{
-			Log() << '"' << c << "\", ";
+			Log() << '"' << c << "\"(" << static_cast<int>(c) << "), ";
 		}
 		Log() << std::endl;
 
 		aes::Codec encrypter(sha256::hash(password), aes::Version::aes256);
-		std::string token = encrypter.encrypt_cbc(args["token"][0]);
+		encrypter.iencrypt_cbc(token);
 		std::ofstream f(tokenpath.c_str(), std::ios::binary | std::ios::out | std::ios::trunc);
 		f.write(token.c_str(), token.size());
 		if (!f)
 		{
-			throw std::runtime_error(std::string("failed to write data to ") + tokenpath.c_str());
+			throw std::runtime_error(
+				std::string("failed to write data to ") + tokenpath.c_str());
 		}
 		return 0;
 	}
+	std::string prompt;
 	auto argbegin = args["prompt"].begin();
 	if (argbegin != args["prompt"].end())
 	{
-		ss << *argbegin; 
+		prompt = *argbegin;
 		++argbegin;
 		while (argbegin != args["prompt"].end())
 		{
-			ss << " " << *argbegin;
+			prompt += " ";
+			prompt += *argbegin;
 			++argbegin;
 		}
 	}
-	std::string prompt = ss.str();
 	if (
 		prompt.find("password") != std::string::npos 
 		|| prompt.find("Password") != std::string::npos)
 	{
 		std::cerr << "git token: " << std::flush;
 		std::string name = term.readline();
+		tokenpath += name;
+
 		std::cerr << "token password: " << std::flush;
 		term.hide_input();
-		std::cerr << std::endl;
 		std::string password = term.readline();
+		std::cerr << std::endl;
 		term.show_input();
 		for (char c : password)
 		{ Log() << '"' << c << "\", "; }
 		Log() << std::endl;
-		tokenpath += name;
+
 		std::ifstream f(tokenpath.c_str(), std::ios::binary | std::ios::in);
 		if (f)
 		{
@@ -111,6 +134,7 @@ int argmain(int argc, char *argv[])
 				aes::Codec decrypter(sha256::hash(password), aes::Version::aes256);
 				decrypter.idecrypt_cbc(token);
 				std::cout.write(token.c_str(), token.size());
+				std::cout << std::endl;
 			}
 			else
 			{ throw std::runtime_error("failed to read file " + name); }
