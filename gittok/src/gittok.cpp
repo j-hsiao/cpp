@@ -111,36 +111,51 @@ int argmain(int argc, char *argv[])
 	{
 		std::cerr << "git token: " << std::flush;
 		std::string name = term.readline();
-		tokenpath += name;
 
-		std::cerr << "token password: " << std::flush;
-		term.hide_input();
-		std::string password = term.readline();
-		std::cerr << std::endl;
-		term.show_input();
-		for (char c : password)
-		{ Log() << '"' << c << "\", "; }
-		Log() << std::endl;
-
-		std::ifstream f(tokenpath.c_str(), std::ios::binary | std::ios::in);
-		if (f)
+		if (name.size())
 		{
-			f.seekg(0, f.end);
-			std::string token(f.tellg(), '\0');
-			f.seekg(0, f.beg);
-			f.read(&token[0], token.size());
+			tokenpath += name;
+			std::ifstream f(tokenpath.c_str(), std::ios::binary | std::ios::in);
 			if (f)
 			{
-				aes::Codec decrypter(sha256::hash(password), aes::Version::aes256);
-				decrypter.idecrypt_cbc(token);
-				std::cout.write(token.c_str(), token.size());
-				std::cout << std::endl;
+				f.seekg(0, f.end);
+				std::string token(f.tellg(), '\0');
+				f.seekg(0, f.beg);
+				f.read(&token[0], token.size());
+				if (f)
+				{
+					std::cerr << "token password: " << std::flush;
+					term.hide_input();
+					std::string password = term.readline();
+					std::cerr << std::endl;
+					term.show_input();
+					for (char c : password)
+					{ Log() << '"' << c << "\", "; }
+					Log() << std::endl;
+					aes::Codec decrypter(sha256::hash(password), aes::Version::aes256);
+					decrypter.idecrypt_cbc(token);
+					std::cout.write(token.c_str(), token.size());
+					std::cout << std::endl;
+				}
+				else
+				{ throw std::runtime_error("failed to read token: " + name); }
 			}
 			else
-			{ throw std::runtime_error("failed to read file " + name); }
+			{ throw std::runtime_error("failed to find token: " + name); }
 		}
 		else
-		{ throw std::runtime_error("failed to open file " + name); }
+		{
+			std::cerr << "warning: no git token specified, using password mode" << std::endl;
+			std::cerr << prompt << std::flush;
+			term.hide_input();
+			std::string password = term.readline();
+			std::cerr << std::endl;
+			term.show_input();
+			for (char c : password)
+			{ Log() << '"' << c << "\", "; }
+			Log() << std::endl;
+			std::cout << password << std::endl;
+		}
 	}
 	else
 	{
