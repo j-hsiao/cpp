@@ -30,3 +30,11 @@ C interface vs C++:
 		ns1::ns2::function would wrap ns1__ns2__function
 
 		(replace :: with __ to get C name)
+
+
+cmake package notes:
+	it seems that dependencies from find_package
+	will still show up in the installed XXXConfig.cmake file (even if PRIVATE)
+	so need to add call to find_dependency in some way
+	or users will have to find_package on each dependency even if they don't actually use it directly
+	but if it's a target from add_subdirectory, then it won't show up? (or is that just because i was building a shared lib at the time?)
