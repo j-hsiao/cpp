@@ -33,13 +33,8 @@ target_link_libraries(
 #------------------------------
 # link to ssl impl if found
 #------------------------------
-option(AES_USE_SSL_PACKAGE "use find_package to get ssl" ON)
-if (AES_USE_SSL_PACKAGE)
-	find_package(OpenSSL)
-endif()
-if (NOT OpenSSL_FOUND OR NOT AES_USE_SSL_PACKAGE)
-	# mark_as_advanced(CLEAR FORCE) does not make the entry viewable with -L
-	# so delete/recreate to remove advanced-ness
+find_package(OpenSSL)
+if (NOT OPENSSL_FOUND)
 	set(tmp "${OPENSSL_INCLUDE_DIR}")
 	unset(OPENSSL_INCLUDE_DIR CACHE)
 	set(OPENSSL_INCLUDE_DIR "${tmp}" CACHE PATH "openssl include directory")
@@ -49,10 +44,16 @@ if (NOT OpenSSL_FOUND OR NOT AES_USE_SSL_PACKAGE)
 	set(OPENSSL_CRYPTO_LIBRARY "${tmp}" CACHE PATH "openssl encryption lib")
 endif()
 
-if (NOT OPENSSL_CRYPTO_LIBRARY)
-	find_library(OPENSSL_CRYPTO_LIBRARY NAMES crypto eay32)
-endif()
-if (OPENSSL_CRYPTO_LIBRARY AND IS_DIRECTORY "${OPENSSL_INCLUDE_DIR}")
+if (OPENSSL_FOUND)
+	target_sources(aes PRIVATE ./src/openssl.cpp)
+	target_compile_definitions(aes PRIVATE "AES_USE_SSL=1")
+	if (TARGET OpenSSL::Crypto)
+		target_link_libraries(aes PRIVATE OpenSSL::Crypto)
+	else()
+		target_link_libraries(aes PRIVATE "${OPENSSL_CRYPTO_LIBRARY}")
+		target_include_directories(aes PRIVATE "${OPENSSL_INCLUDE_DIR}")
+	endif()
+elseif(OPENSSL_CRYPTO_LIBRARY AND OPENSSL_INCLUDE_DIR)
 	target_sources(aes PRIVATE ./src/openssl.cpp)
 	target_link_libraries(aes PRIVATE "${OPENSSL_CRYPTO_LIBRARY}")
 	target_include_directories(aes PRIVATE "${OPENSSL_INCLUDE_DIR}")

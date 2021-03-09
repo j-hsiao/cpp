@@ -41,25 +41,24 @@ namespace
 #endif
 }
 
-class os__Path
+struct os__Path
 {
-	public:
-		os__Path(const std::string &dat);
+	os__Path(const std::string &dat);
 
-		const char* c_str() const noexcept;
-		operator const char*() const noexcept { return c_str(); }
-		os__Path& operator+=(const std::string&);
-		void add(const std::string&);
+	const char* c_str() const noexcept;
+	operator const char*() const noexcept { return c_str(); }
+	os__Path& operator+=(const std::string&);
+	void add(const std::string&);
 
-		void add_ext(const std::string&);
-		void dirname() noexcept;
-		void pop_ext() noexcept;
+	void add_ext(const std::string&);
+	void dirname() noexcept;
+	void pop_ext() noexcept;
 
-		const char* base() const noexcept;
-		const char* ext() const noexcept;
+	const char* base() const noexcept;
+	const char* ext() const noexcept;
 
-		std::string data;
-		std::vector<std::size_t> inds;
+	std::string data;
+	std::vector<std::size_t> inds;
 };
 
 os__Path::os__Path(const std::string &dat):

@@ -7,20 +7,18 @@
 #include <string>
 namespace
 {
-	inline os__ebuf& operator<<(os__ebuf &buf, const std::exception &exc)
+	inline void operator<<(os__ebuf &buf, const std::exception &exc)
 	{
 		std::strncpy(buf.buf, exc.what(), buf.size);
 		buf.buf[buf.size - 1] = 0;
-		return buf;
 	}
 
-	inline os__ebuf& operator<<(os__ebuf &buf, std::errc ec)
+	inline void operator<<(os__ebuf &buf, std::errc ec)
 	{
 		int c = static_cast<int>(ec);
 		std::strncpy(
 			buf.buf, std::generic_category().message(c).c_str(), buf.size);
 		buf.buf[buf.size - 1] = 0;
-		return buf;
 	}
 }
 #endif

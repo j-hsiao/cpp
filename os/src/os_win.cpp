@@ -1,3 +1,4 @@
+#define _CRT_SECURE_NO_WARNINGS 1
 #include <os/os.h>
 #include <.os/util.hpp>
 
@@ -49,18 +50,16 @@ namespace
 		{ return "error code " + std::to_string(code); }
 	}
 
-	os__ebuf& operator<<(os__ebuf &buf, int code)
+	void operator<<(os__ebuf &ebuf, int code)
 	{
 		std::strncpy(
-			buf.buf, std::generic_category().message(code).c_str(), buf.size);
-		buf.buf[buf.size - 1] = 0;
-		return buf;
+			ebuf.buf, std::generic_category().message(code).c_str(), ebuf.size);
+		ebuf.buf[ebuf.size - 1] = 0;
 	}
-	os__ebuf& operator<<(os__ebuf &buf, DWORD code)
+	void operator<<(os__ebuf &ebuf, DWORD code)
 	{
-		std::strncpy(buf.buf, syserror(code).c_str(), buf.size);
-		buf.buf[buf.size - 1] = 0;
-		return buf;
+		std::strncpy(ebuf.buf, syserror(code).c_str(), ebuf.size);
+		ebuf.buf[ebuf.size - 1] = 0;
 	}
 	//bit 29 = user bit
 	//https://docs.microsoft.com/en-us/windows/win32/api/errhandlingapi/nf-errhandlingapi-getlasterror
@@ -163,7 +162,7 @@ const char* os__Dirlist__next(os__Dirlist *dl, os__ebuf *ebuf)
 //https://docs.microsoft.com/en-us/windows/win32/fileio/file-attribute-constants
 //https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getfileattributesw
 
-os__Filenode os__Filenode__make(const char *path, os__ebuf *buf)
+os__Filenode os__Filenode__make(const char *path, os__ebuf *ebuf)
 {
 	DWORD attrs = GetFileAttributesW(strcvt.from_bytes(path).c_str());
 	if (attrs == INVALID_FILE_ATTRIBUTES)
@@ -171,7 +170,7 @@ os__Filenode os__Filenode__make(const char *path, os__ebuf *buf)
 		DWORD code = GetLastError();
 		if (code != ERROR_FILE_NOT_FOUND && code != ERROR_PATH_NOT_FOUND)
 		{
-			if (buf) { *buf << code; }
+			if (ebuf) { *ebuf << code; }
 			return -1;
 		}
 		else { return 0; }
@@ -188,11 +187,11 @@ bool os__Filenode__is_file_nc(os__Filenode node)
 //------------------------------
 //fs modification
 //------------------------------
-int os__mkdir(const char *path, os__ebuf *buf)
+int os__mkdir(const char *path, os__ebuf *ebuf)
 {
 	if (!CreateDirectoryW(strcvt.from_bytes(path).c_str(), NULL))
 	{
-		if (buf) { *buf << GetLastError(); }
+		if (ebuf) { *ebuf << GetLastError(); }
 		return -1;
 	}
 	return 0;
@@ -200,33 +199,33 @@ int os__mkdir(const char *path, os__ebuf *buf)
 
 #include "normdst_incl.cpp"
 //works for directories and files
-int os__rename(const char *before, const char *after, os__ebuf *buf)
+int os__rename(const char *before, const char *after, os__ebuf *ebuf)
 {
 	try
 	{
-		std::string dst = normalize_dst(before, after, buf);
+		std::string dst = normalize_dst(before, after, ebuf);
 		if (!dst.size()) { return -1; }
 		if (!MoveFileExW(
 			strcvt.from_bytes(before).c_str(),
 			strcvt.from_bytes(dst).c_str(),
 			MOVEFILE_COPY_ALLOWED))
 		{
-			if (buf) { *buf << GetLastError(); }
+			if (ebuf) { *ebuf << GetLastError(); }
 			return -1;
 		}
 		return 0;
 	}
 	catch (std::exception &exc)
 	{
-		if (buf) { *buf << exc; }
+		if (ebuf) { *ebuf << exc; }
 		return -1;
 	}
 }
-int os__remove(const char *path, os__ebuf *buf)
+int os__remove(const char *path, os__ebuf *ebuf)
 {
 	try
 	{
-		os__Filenode node = os__Filenode__make(path, buf);
+		os__Filenode node = os__Filenode__make(path, ebuf);
 		if (node < 0) { return -1; }
 		if (os__Filenode__exists(node))
 		{
@@ -240,7 +239,7 @@ int os__remove(const char *path, os__ebuf *buf)
 				DWORD code = GetLastError();
 				if (code != ERROR_FILE_NOT_FOUND)
 				{
-					if (buf) { *buf << code; }
+					if (ebuf) { *ebuf << code; }
 					return -1;
 				}
 			}
@@ -249,7 +248,7 @@ int os__remove(const char *path, os__ebuf *buf)
 	}
 	catch (std::exception &exc)
 	{
-		if (buf) { *buf << exc; }
+		if (ebuf) { *ebuf << exc; }
 		return -1;
 	}
 }
@@ -492,74 +491,74 @@ FILE* os__term_open(const char *mode)
 	return f;
 }
 
-int os__hide_input(FILE *f, os__ebuf *buf)
+int os__hide_input(FILE *f, os__ebuf *ebuf)
 {
 	int fd = ::_fileno(f);
 	if (fd == -1)
 	{
-		if (buf) { *buf << errno; }
+		if (ebuf) { *ebuf << errno; }
 		return -1;
 	}
 	else if (fd == -2)
 	{
-		if (buf) { *buf << static_cast<int>(std::errc::inappropriate_io_control_operation); }
+		if (ebuf) { *ebuf << static_cast<int>(std::errc::inappropriate_io_control_operation); }
 		return -1;
 	}
 	HANDLE h = reinterpret_cast<HANDLE>(_get_osfhandle(fd));
 	if (h == INVALID_HANDLE_VALUE)
 	{
-		if (buf) { *buf << GetLastError(); }
+		if (ebuf) { *ebuf << GetLastError(); }
 		return -1;
 	}
 	DWORD mode;
 	if (!GetConsoleMode(h, &mode))
 	{
-		if (buf) { *buf << GetLastError(); }
+		if (ebuf) { *ebuf << GetLastError(); }
 		return -1;
 	}
 	mode &= ~ENABLE_ECHO_INPUT;
 	if (!SetConsoleMode(h, mode))
 	{
-		if (buf) { *buf << GetLastError(); }
+		if (ebuf) { *ebuf << GetLastError(); }
 		return -1;
 	}
 	return 0;
 }
-int os__show_input(FILE *f, os__ebuf *buf)
+int os__show_input(FILE *f, os__ebuf *ebuf)
 {
 	int fd = ::_fileno(f);
 	if (fd == -1)
 	{
-		if (buf) { *buf << errno; }
+		if (ebuf) { *ebuf << errno; }
 		return -1;
 	}
 	else if (fd == -2)
 	{
-		if (buf) { *buf << static_cast<int>(std::errc::inappropriate_io_control_operation); }
+		if (ebuf) { *ebuf << static_cast<int>(std::errc::inappropriate_io_control_operation); }
 		return -1;
 	}
 	HANDLE h = reinterpret_cast<HANDLE>(_get_osfhandle(fd));
 	if (h == INVALID_HANDLE_VALUE)
 	{
-		if (buf) { *buf << GetLastError(); }
+		if (ebuf) { *ebuf << GetLastError(); }
 		return -1;
 	}
 	DWORD mode;
 	if (!GetConsoleMode(h, &mode))
 	{
-		if (buf) { *buf << GetLastError(); }
+		if (ebuf) { *ebuf << GetLastError(); }
 		return -1;
 	}
 	mode |= ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT;
 	if (!SetConsoleMode(h, mode))
 	{
-		if (buf) { *buf << GetLastError(); }
+		if (ebuf) { *ebuf << GetLastError(); }
 		return -1;
 	}
 	return 0;
 }
 
-int os__set_env(const char *val, const char *var, os__ebuf *buf)
+int os__set_env(const char *val, const char *var, os__ebuf *ebuf)
 {
 	std::wstring wvar = strcvt.from_bytes(var);
 	const wchar_t *wval = nullptr;
@@ -571,7 +570,7 @@ int os__set_env(const char *val, const char *var, os__ebuf *buf)
 	}
 	if (SetEnvironmentVariableW(wvar.c_str(), wval))
 	{
-		if (buf) { *buf << GetLastError(); }
+		if (ebuf) { *ebuf << GetLastError(); }
 		return -1;
 	}
 	return 0;
@@ -582,7 +581,7 @@ int os__get_env(char *buf, const char *var, size_t bufsize, os__ebuf *ebuf)
 	DWORD ret = GetEnvironmentVariableW(
 		strcvt.from_bytes(var).c_str(),
 		&wbuf[0],
-		bufsize);
+		static_cast<DWORD>(bufsize));
 	if (ret == 0)
 	{
 		DWORD code = GetLastError();
@@ -592,7 +591,7 @@ int os__get_env(char *buf, const char *var, size_t bufsize, os__ebuf *ebuf)
 		{ return 0; }
 		else
 		{
-			if (buf) { *buf << code; }
+			if (ebuf) { *ebuf << code; }
 			return -2;
 		}
 	}

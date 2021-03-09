@@ -1,6 +1,6 @@
 #include <string>
 #include <vector>
-int os__makedirs(const char *path, os__ebuf *buf)
+int os__makedirs(const char *path, os__ebuf *ebuf)
 {
 	try
 	{
@@ -9,7 +9,7 @@ int os__makedirs(const char *path, os__ebuf *buf)
 		std::vector<std::string> stack;
 		os__Filenode node;
 		while (
-			(node = os__Filenode__make(p.c_str(), buf)) >= 0
+			(node = os__Filenode__make(p.c_str(), ebuf)) >= 0
 			&& !os__Filenode__exists(node)
 			&& p.inds.size())
 		{
@@ -23,12 +23,12 @@ int os__makedirs(const char *path, os__ebuf *buf)
 			Log() << "exists?" << os__Filenode__exists(node) << std::endl;
 			code = -1;
 			stack.clear();
-			if (buf) { *buf << std::errc::not_a_directory; }
+			if (ebuf) { *ebuf << std::errc::not_a_directory; }
 		}
 		while (stack.size() && code == 0)
 		{
 			p += stack.back();
-			code = os__mkdir(p.c_str(), buf);
+			code = os__mkdir(p.c_str(), ebuf);
 			stack.pop_back();
 		}
 		if (code)
@@ -40,7 +40,7 @@ int os__makedirs(const char *path, os__ebuf *buf)
 	}
 	catch (std::exception &exc)
 	{
-		if (buf) { *buf << exc; }
+		if (ebuf) { *ebuf << exc; }
 		return -1;
 	}
 }

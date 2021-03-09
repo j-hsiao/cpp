@@ -87,7 +87,7 @@ namespace aes
 
 				while (length)
 				{
-					int chunklen = length < Chunk_Size ? length : Chunk_Size;
+					int chunklen = length < Chunk_Size ? static_cast<int>(length) : Chunk_Size;
 					if (1 != EVP_EncryptUpdate(ctx, dst, &steplen, dat, chunklen))
 					{ throw std::runtime_error("failed to encrypt data"); }
 					length -= chunklen;
@@ -116,7 +116,7 @@ namespace aes
 				std::size_t totlen = 0;
 				while (length)
 				{
-					int chunklen = length < Chunk_Size ? length : Chunk_Size;
+					int chunklen = length < Chunk_Size ? static_cast<int>(length) : Chunk_Size;
 					if (1 != EVP_DecryptUpdate(ctx, dst, &steplen, dat, chunklen))
 					{ throw std::runtime_error("failed to decrypt data"); }
 					length -= chunklen;

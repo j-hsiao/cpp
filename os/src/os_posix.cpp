@@ -25,28 +25,27 @@ namespace
 {
 	static const std::error_condition noent = std::make_error_condition(
 		std::errc::no_such_file_or_directory);
-	os__ebuf& operator<<(os__ebuf &buf, int code)
+	void operator<<(os__ebuf &buf, int code)
 	{
 		std::strncpy(
 			buf.buf, std::generic_category().message(code).c_str(), buf.size);
 		buf.buf[buf.size - 1] = 0;
-		return buf;
 	}
 }
 
 struct os__Dirlist {};
-os__Dirlist* os__Dirlist__make(const char *path, os__ebuf *buf)
+os__Dirlist* os__Dirlist__make(const char *path, os__ebuf *ebuf)
 {
 	DIR *ptr = ::opendir(path);
-	if (!ptr && buf)
-	{ *buf << errno; }
+	if (!ptr && ebuf)
+	{ *ebuf << errno; }
 	return reinterpret_cast<os__Dirlist*>(ptr);
 }
-int os__Dirlist__free(os__Dirlist *ptr, os__ebuf *buf)
+int os__Dirlist__free(os__Dirlist *ptr, os__ebuf *ebuf)
 {
 	int ret = ::closedir(reinterpret_cast<DIR*>(ptr));
-	if (ret == -1 && buf)
-	{ *buf << errno; }
+	if (ret == -1 && ebuf)
+	{ *ebuf << errno; }
 	return ret;
 }
 //https://man7.org/linux/man-pages/man3/readdir.3.html
@@ -76,7 +75,7 @@ const char* os__Dirlist__next(os__Dirlist *ptr, os__ebuf *ebuf)
 //------------------------------
 //file node
 //------------------------------
-os__Filenode os__Filenode__make(const char *path, os__ebuf *buf)
+os__Filenode os__Filenode__make(const char *path, os__ebuf *ebuf)
 {
 	struct stat info;
 	if (::stat(path, &info) == -1)
@@ -84,7 +83,7 @@ os__Filenode os__Filenode__make(const char *path, os__ebuf *buf)
 		int code = errno;
 		if (std::error_code(code, std::generic_category()) != noent)
 		{
-			if (buf) { *buf << code; }
+			if (ebuf) { *ebuf << code; }
 			return -1;
 		}
 		else
@@ -103,51 +102,51 @@ bool os__Filenode__is_file_nc(os__Filenode node)
 //------------------------------
 //fs modification
 //------------------------------
-int os__mkdir(const char *path, os__ebuf *buf)
+int os__mkdir(const char *path, os__ebuf *ebuf)
 {
 	int ret = mkdir(path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-	if (ret == -1 && buf)
-	{ *buf << errno; }
+	if (ret == -1 && ebuf)
+	{ *ebuf << errno; }
 	return ret;
 }
 
 #include "normdst_incl.cpp"
 
 //works for directories and files
-int os__rename(const char *before, const char *after, os__ebuf *buf)
+int os__rename(const char *before, const char *after, os__ebuf *ebuf)
 {
 	try
 	{
-		std::string dst = normalize_dst(before, after, buf);
+		std::string dst = normalize_dst(before, after, ebuf);
 		if (!dst.size()) { return -1; }
 		if (dst != after) {
-			os__Filenode node = os__Filenode__make(dst.c_str(), buf);
+			os__Filenode node = os__Filenode__make(dst.c_str(), ebuf);
 			if (node < 0) { return -1; }
 			if (os__Filenode__exists(node))
 			{
-				if (buf) { *buf << std::errc::file_exists; }
+				if (ebuf) { *ebuf << std::errc::file_exists; }
 				return -1;
 			}
 		}
 		if (::rename(before, dst.c_str()))
 		{
 			int code = errno;
-			if (buf) { *buf << code; }
+			if (ebuf) { *ebuf << code; }
 			return code;
 		}
 		return 0;
 	}
 	catch (std::exception &exc)
 	{
-		if (buf) { *buf << exc; }
+		if (ebuf) { *ebuf << exc; }
 		return -1;
 	}
 }
-int os__remove(const char *path, os__ebuf *buf)
+int os__remove(const char *path, os__ebuf *ebuf)
 {
 	try
 	{
-		os__Filenode node = os__Filenode__make(path, buf);
+		os__Filenode node = os__Filenode__make(path, ebuf);
 		if (node < 0) { return -1; }
 		if (os__Filenode__exists(node))
 		{
@@ -167,7 +166,7 @@ int os__remove(const char *path, os__ebuf *buf)
 	}
 	catch (std::exception &exc)
 	{
-		if (buf) { *buf << exc; }
+		if (ebuf) { *ebuf << exc; }
 		return -1;
 	}
 }
@@ -202,48 +201,48 @@ OS_API void os__show_window() {}
 FILE* os__term_open(const char *mode)
 { return fopen("/dev/tty", mode); }
 
-int os__hide_input(FILE *f, os__ebuf *buf)
+int os__hide_input(FILE *f, os__ebuf *ebuf)
 {
 	struct termios current;
 	int fd = ::fileno(f);
 	if (::tcgetattr(fd, &current) == -1)
 	{
-		if (buf) { *buf << errno; }
+		if (ebuf) { *ebuf << errno; }
 		return -1;
 	}
 	current.c_lflag &= ~ECHO;
 	if (tcsetattr(fd, TCSAFLUSH, &current) == -1)
 	{
-		if (buf) { *buf << errno; }
+		if (ebuf) { *ebuf << errno; }
 		return -1;
 	}
 	return 0;
 }
-int os__show_input(FILE *f, os__ebuf *buf)
+int os__show_input(FILE *f, os__ebuf *ebuf)
 {
 	struct termios current;
 	int fd = ::fileno(f);
 	if (::tcgetattr(fd, &current) == -1)
 	{
-		if (buf) { *buf << errno; }
+		if (ebuf) { *ebuf << errno; }
 		return -1;
 	}
 	current.c_lflag |= ECHO;
 	if (::tcsetattr(fd, TCSAFLUSH, &current) == -1)
 	{
-		if (buf) { *buf << errno; }
+		if (ebuf) { *ebuf << errno; }
 		return -1;
 	}
 	return 0;
 }
 
-int os__set_env(const char *val, const char *var, os__ebuf *buf)
+int os__set_env(const char *val, const char *var, os__ebuf *ebuf)
 {
 	if (!val)
 	{
 		if (::unsetenv(var))
 		{
-			if (buf) { *buf << errno; }
+			if (ebuf) { *ebuf << errno; }
 			return -1;
 		}
 	}
@@ -251,7 +250,7 @@ int os__set_env(const char *val, const char *var, os__ebuf *buf)
 	{
 		if (::setenv(var, val, 1))
 		{
-			if (buf) { *buf << errno; }
+			if (ebuf) { *ebuf << errno; }
 			return -1;
 		}
 	}
