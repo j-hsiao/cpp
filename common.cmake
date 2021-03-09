@@ -157,17 +157,17 @@ if (NOT COMMAND configure_dll)
 		export(
 			EXPORT ${PROJECT_NAME}_exports
 			NAMESPACE ${PROJECT_NAME}::
-			FILE "${CMAKE_CURRENT_BINARY_DIR}/cmake/${PROJECT_NAME}Targets.cmake")
+			FILE "${CMAKE_CURRENT_BINARY_DIR}/cmake/${PROJECT_NAME}/${PROJECT_NAME}Targets.cmake")
 
 		set(find_package_commands "${${PROJECT_NAME}_find_package_commands}")
 		configure_file(
 			"${commondir}/config.cmake.in"
-			"${CMAKE_CURRENT_BINARY_DIR}/cmake/${PROJECT_NAME}Config.cmake"
+			"${CMAKE_CURRENT_BINARY_DIR}/cmake/${PROJECT_NAME}/${PROJECT_NAME}Config.cmake"
 			@ONLY)
 		if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
 			set(configdst cmake)
 		else()
-			set(configdst lib/cmake)
+			set(configdst lib/cmake/${PROJECT_NAME})
 		endif()
 		install(
 			EXPORT ${PROJECT_NAME}_exports
@@ -176,7 +176,7 @@ if (NOT COMMAND configure_dll)
 			NAMESPACE ${PROJECT_NAME}::
 		)
 		install(
-			FILES "${CMAKE_CURRENT_BINARY_DIR}/cmake/${PROJECT_NAME}Config.cmake"
+			FILES "${CMAKE_CURRENT_BINARY_DIR}/cmake/${PROJECT_NAME}/${PROJECT_NAME}Config.cmake"
 			DESTINATION "${configdst}")
 
 			# after reading a bit more on this

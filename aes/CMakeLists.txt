@@ -18,12 +18,6 @@ add_library(
 )
 target_include_directories(aes PRIVATE "${CMAKE_CURRENT_LIST_DIR}/../tlog")
 
-list(
-	APPEND CMAKE_PREFIX_PATH 
-		"${CMAKE_INSTALL_PREFIX}/cmake"
-		"${CMAKE_INSTALL_PREFIX}/lib/cmake"
-)
-
 foreach(dep sha256 os)
 	find_package(${dep} QUIET)
 	if (NOT ${dep}_FOUND)

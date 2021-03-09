@@ -71,10 +71,6 @@ configure_file(
 	"${CMAKE_CURRENT_BINARY_DIR}/include/sha256/types_impl.h"
 	@ONLY
 )
-#install(
-	#FILES "${CMAKE_CURRENT_BINARY_DIR}/include/sha256/types_impl.h"
-	#DESTINATION include/sha256
-#)
 
 add_library(sha256 src/sha256.cpp)
 configure_dll()

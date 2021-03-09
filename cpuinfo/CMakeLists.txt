@@ -9,7 +9,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(CPUINFO_DEBUG "build with debug logs?" OFF)
 
-if (MSVC OR MINGW)
+if (MSVC)
 	add_library(cpuinfo ./src/cpuinfo_win.cpp)
 else()
 	add_library(cpuinfo ./src/cpuinfo_gnu.cpp)
