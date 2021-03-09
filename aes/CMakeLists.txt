@@ -45,6 +45,7 @@ if (NOT OPENSSL_FOUND)
 endif()
 
 if (OPENSSL_FOUND)
+	find_export_package(OpenSSL REQUIRED)
 	target_sources(aes PRIVATE ./src/openssl.cpp)
 	target_compile_definitions(aes PRIVATE "AES_USE_SSL=1")
 	if (TARGET OpenSSL::Crypto)
