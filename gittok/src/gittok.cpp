@@ -33,7 +33,7 @@ int argmain(int argc, char *argv[])
 	std::string gittokDir;
 	try
 	{ gittokDir = os::get_env("GITTOK_DIR"); }
-	catch (os::NotFound &e)
+	catch (os::NotFound&)
 	{
 		gittokDir = os::get_sysdir("home");
 		if (!gittokDir.size())
