@@ -1,3 +1,39 @@
+# Add some common functionality:
+#	build_dependency(depname, depsrc)
+#		build a dependency into CMAKE_INSTALL_PREFIX
+#		using CMAKE_CURRENT_BINARY_DIR/depname as the working dir
+#	configure_dll
+#		Assumes library has same name as project
+#		1. set option ${PROJECT_NAME_UPPER}_DEBUG
+#			option set via cmake -D${PROJECT_NAME_UPPER}_DEBUG=ON/OFF
+#			macro definition for this project: ${PROJECT_NAME_UPPER}_DEBUG=0/1
+#		2. create header:
+#			CMAKE_CURRENT_BINARY_DIR/include/${PROJECT_NAME}/${PROJECT_NAME}_dllcfg.h
+#			add the header to ${PROJECT_NAME} via
+#			target_include_directories
+#			
+#			header:
+#				${PROJECT_NAME_UPPER}_API: macro defined to appropriate
+#					__declspec(dll[export|import])
+#				CPP_EXTERNC_BEGIN
+#				CPP_EXTERNC_END
+#					macros defined to wrap C style code within an
+#					extern "C" block if compiling with c++
+#	find_export_package(...)
+#		forward arguments to find_package
+#		adds find_dependency do ${PROJECT_NAME}_find_package_commands
+#		use this instead of find_package to ensure that
+#		when installing, the dependencies are added as well
+#		(config.cmake.in is replaced with these commands)
+#	install_project(includes...)
+#		macro that installs project
+#		1. add CMAKE_CURRENT_SOURCE_DIR/include to target
+#		2. installs project and exports under ${PROJECT_NAME}:: namespace
+#		3. add includes to installed include dir:
+#			CMAKE_INSTALL_PREFIX/include if isdir
+#			CMAKE_INSTALL_PREFIX/include/PROJECTNAME/file if isfile
+#			(This allows to have multiple include dirs, some private,
+#			some public, includes should only specify public headers)
 # default build type
 if (NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE "Release" CACHE STRING "build type" FORCE)
@@ -44,7 +80,6 @@ if (NOT COMMAND configure_dll)
 		# it'll still show up in the generated ${PROJECT_NAME}Targets.cmake
 		# so just always use the CMAKE_INSTALL_PREFIX i guess
 		set(dependency_install_dir "${CMAKE_INSTALL_PREFIX}")
-
 		execute_process(
 			COMMAND
 				"${CMAKE_COMMAND}"
@@ -68,8 +103,6 @@ if (NOT COMMAND configure_dll)
 			WORKING_DIRECTORY
 				"${CMAKE_CURRENT_BINARY_DIR}/${dep}"
 		)
-
-		
 	endfunction()
 	set(commondir "${CMAKE_CURRENT_LIST_DIR}")
 	function(configure_dll)
