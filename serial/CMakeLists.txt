@@ -8,11 +8,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include("${CMAKE_CURRENT_LIST_DIR}/../common.cmake" NO_POLICY_SCOPE)
 
-add_library(serial)
+add_library(serial src/serial.cpp)
+configure_dll()
 install_project(include/serial)
 
 if (BUILD_TESTING)
-	add_executable(serialtest ./tests/test.cpp)
+	add_executable(serialtest ./src/test.cpp)
 	target_link_libraries(serialtest PRIVATE serial)
 	add_test(NAME serial COMMAND serialtest)
 endif()
