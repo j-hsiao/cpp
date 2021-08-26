@@ -1,33 +1,123 @@
 #include <serial/serial.h>
 
+#include <cstring>
 #include <cstdint>
 #include <climits>
 #include <iostream>
 #include <typeinfo>
+#include <vector>
 
-template<class T, int bits>
-int check_int(
-	void (*store)(T, unsigned char *data),
-	T (*load)(unsigned char *data))
+
+const unsigned char n16_bytes[][3] = {
+	"\x00\x01", "\x00\x02", "\x00\x04", "\x00\x08",
+	"\x00\x10", "\x00\x20", "\x00\x40", "\x00\x80",
+	"\x01\x00", "\x02\x00", "\x04\x00", "\x08\x00",
+	"\x10\x00", "\x20\x00", "\x40\x00", "\x80\x00"};
+
+const unsigned char n32_bytes[][5] = {
+	"\x00\x00\x00\x01", "\x00\x00\x00\x02", "\x00\x00\x00\x04", "\x00\x00\x00\x08",
+	"\x00\x00\x00\x10", "\x00\x00\x00\x20", "\x00\x00\x00\x40", "\x00\x00\x00\x80",
+	"\x00\x00\x01\x00", "\x00\x00\x02\x00", "\x00\x00\x04\x00", "\x00\x00\x08\x00",
+	"\x00\x00\x10\x00", "\x00\x00\x20\x00", "\x00\x00\x40\x00", "\x00\x00\x80\x00",
+	"\x00\x01\x00\x00", "\x00\x02\x00\x00", "\x00\x04\x00\x00", "\x00\x08\x00\x00",
+	"\x00\x10\x00\x00", "\x00\x20\x00\x00", "\x00\x40\x00\x00", "\x00\x80\x00\x00",
+	"\x01\x00\x00\x00", "\x02\x00\x00\x00", "\x04\x00\x00\x00", "\x08\x00\x00\x00",
+	"\x10\x00\x00\x00", "\x20\x00\x00\x00", "\x40\x00\x00\x00", "\x80\x00\x00\x00"};
+
+const unsigned char n64_bytes[][9] = {
+	"\x00\x00\x00\x00\x00\x00\x00\x01", "\x00\x00\x00\x00\x00\x00\x00\x02", "\x00\x00\x00\x00\x00\x00\x00\x04", "\x00\x00\x00\x00\x00\x00\x00\x08",
+	"\x00\x00\x00\x00\x00\x00\x00\x10", "\x00\x00\x00\x00\x00\x00\x00\x20", "\x00\x00\x00\x00\x00\x00\x00\x40", "\x00\x00\x00\x00\x00\x00\x00\x80",
+	"\x00\x00\x00\x00\x00\x00\x01\x00", "\x00\x00\x00\x00\x00\x00\x02\x00", "\x00\x00\x00\x00\x00\x00\x04\x00", "\x00\x00\x00\x00\x00\x00\x08\x00",
+	"\x00\x00\x00\x00\x00\x00\x10\x00", "\x00\x00\x00\x00\x00\x00\x20\x00", "\x00\x00\x00\x00\x00\x00\x40\x00", "\x00\x00\x00\x00\x00\x00\x80\x00",
+	"\x00\x00\x00\x00\x00\x01\x00\x00", "\x00\x00\x00\x00\x00\x02\x00\x00", "\x00\x00\x00\x00\x00\x04\x00\x00", "\x00\x00\x00\x00\x00\x08\x00\x00",
+	"\x00\x00\x00\x00\x00\x10\x00\x00", "\x00\x00\x00\x00\x00\x20\x00\x00", "\x00\x00\x00\x00\x00\x40\x00\x00", "\x00\x00\x00\x00\x00\x80\x00\x00",
+	"\x00\x00\x00\x00\x01\x00\x00\x00", "\x00\x00\x00\x00\x02\x00\x00\x00", "\x00\x00\x00\x00\x04\x00\x00\x00", "\x00\x00\x00\x00\x08\x00\x00\x00",
+	"\x00\x00\x00\x00\x10\x00\x00\x00", "\x00\x00\x00\x00\x20\x00\x00\x00", "\x00\x00\x00\x00\x40\x00\x00\x00", "\x00\x00\x00\x00\x80\x00\x00\x00",
+
+	"\x00\x00\x00\x01\x00\x00\x00\x00", "\x00\x00\x00\x02\x00\x00\x00\x00", "\x00\x00\x00\x04\x00\x00\x00\x00", "\x00\x00\x00\x08\x00\x00\x00\x00",
+	"\x00\x00\x00\x10\x00\x00\x00\x00", "\x00\x00\x00\x20\x00\x00\x00\x00", "\x00\x00\x00\x40\x00\x00\x00\x00", "\x00\x00\x00\x80\x00\x00\x00\x00",
+	"\x00\x00\x01\x00\x00\x00\x00\x00", "\x00\x00\x02\x00\x00\x00\x00\x00", "\x00\x00\x04\x00\x00\x00\x00\x00", "\x00\x00\x08\x00\x00\x00\x00\x00",
+	"\x00\x00\x10\x00\x00\x00\x00\x00", "\x00\x00\x20\x00\x00\x00\x00\x00", "\x00\x00\x40\x00\x00\x00\x00\x00", "\x00\x00\x80\x00\x00\x00\x00\x00",
+	"\x00\x01\x00\x00\x00\x00\x00\x00", "\x00\x02\x00\x00\x00\x00\x00\x00", "\x00\x04\x00\x00\x00\x00\x00\x00", "\x00\x08\x00\x00\x00\x00\x00\x00",
+	"\x00\x10\x00\x00\x00\x00\x00\x00", "\x00\x20\x00\x00\x00\x00\x00\x00", "\x00\x40\x00\x00\x00\x00\x00\x00", "\x00\x80\x00\x00\x00\x00\x00\x00",
+	"\x01\x00\x00\x00\x00\x00\x00\x00", "\x02\x00\x00\x00\x00\x00\x00\x00", "\x04\x00\x00\x00\x00\x00\x00\x00", "\x08\x00\x00\x00\x00\x00\x00\x00",
+	"\x10\x00\x00\x00\x00\x00\x00\x00", "\x20\x00\x00\x00\x00\x00\x00\x00", "\x40\x00\x00\x00\x00\x00\x00\x00", "\x80\x00\x00\x00\x00\x00\x00\x00"
+};
+
+
+uint_least64_t uvalues[] = {
+1ull, 2ull, 4ull, 8ull,
+16ull, 32ull, 64ull, 128ull,
+256ull, 512ull, 1024ull, 2048ull,
+4096ull, 8192ull, 16384ull, 32768ull,
+65536ull, 131072ull, 262144ull, 524288ull,
+1048576ull, 2097152ull, 4194304ull, 8388608ull,
+16777216ull, 33554432ull, 67108864ull, 134217728ull,
+268435456ull, 536870912ull, 1073741824ull, 2147483648ull,
+4294967296ull, 8589934592ull, 17179869184ull, 34359738368ull,
+68719476736ull, 137438953472ull, 274877906944ull, 549755813888ull,
+1099511627776ull, 2199023255552ull, 4398046511104ull, 8796093022208ull,
+17592186044416ull, 35184372088832ull, 70368744177664ull, 140737488355328ull,
+281474976710656ull, 562949953421312ull, 1125899906842624ull, 2251799813685248ull,
+4503599627370496ull, 9007199254740992ull, 18014398509481984ull, 36028797018963968ull,
+72057594037927936ull, 144115188075855872ull, 288230376151711744ull, 576460752303423488ull,
+1152921504606846976ull, 2305843009213693952ull, 4611686018427387904ull, 9223372036854775808ull};
+
+
+template<class T>
+void printbytes(T thing, int count)
 {
-	T x;
-	std::cerr << "int test " << typeid(x).name() << "("
-		<< bits << " bits)" << std::endl;
-	unsigned char buf[sizeof(T)];
-
-	for (int i=0; i<bits; ++i)
+	std::cout << "[ ";
+	for (int i=0; i<count; ++i)
 	{
-		T thing = 1;
-		thing <<= i;
-		std::cerr << "testing " << i << ": " << thing << std::endl;
-		store(thing, buf);
-		if (load(buf) != thing)
+		std::cerr << static_cast<int>(*thing) << " ";
+		++thing;
+	}
+	std::cout << "]" << std::endl;
+}
+
+
+template<class T, int bsize, bool issigned>
+int check_int(
+	void (*store)(unsigned char *data, T),
+	T (*load)(const unsigned char *data),
+	const unsigned char (*bins)[bsize])
+{
+	int bits = (bsize-1)*8;
+	std::cerr << "testing " << bits << " bit "
+		<< (issigned ? "": "un") << "signed integer" << std::endl;
+
+	std::vector<unsigned char> buf(bits / 8);
+	for (int i=0; i < bits-issigned; ++i)
+	{
+		T value = static_cast<T>(uvalues[i]);
+		store(&buf[0], value);
+
+		if (memcmp(bins[i], &buf[0], buf.size()))
 		{
-			std::cerr << "error, expected " << thing
-				<< " but got " << load(buf) << std::endl;
+			std::cerr << "store failed: " << value << std::endl;
 			return 1;
 		}
+		if (load(bins[i]) != value)
+		{
+			std::cerr << "load failed: " << value << std::endl;
+			return 1;
+		}
+		if (issigned)
+		{
+			for (unsigned char &c : buf)
+			{ c = ~c; }
+			if (load(&buf[0]) + value != -1)
+			{
+				std::cerr << "load bitflipped binary failed" << std::endl;
+				std::cerr << "value: " << value << std::endl;
+				std::cerr << "expected bitflipped: " << (-1 - value) << std::endl;
+				std::cerr << "loaded result: " << load(&buf[0]) << std::endl;
+				return 1;
+			}
+		}
 	}
+
 	std::cerr << "passed" << std::endl;
 	return 0;
 }
@@ -36,11 +126,11 @@ int check_int(
 int main(int argc, char *argv[])
 {
 	return (
-		check_int<uint_least16_t, 16>(serial__store_ui16, serial__load_ui16)
-		|| check_int<uint_least32_t, 32>(serial__store_ui32, serial__load_ui32)
-		|| check_int<uint_least64_t, 64>(serial__store_ui64, serial__load_ui64)
-		|| check_int<int_least16_t, 16>(serial__store_i16, serial__load_i16)
-		|| check_int<int_least32_t, 32>(serial__store_i32, serial__load_i32)
-		|| check_int<int_least64_t, 64>(serial__store_i64, serial__load_i64)
+		check_int<uint_least16_t, 3, 0>(serial__store_ui16, serial__load_ui16, n16_bytes)
+		|| check_int<uint_least32_t, 5, 0>(serial__store_ui32, serial__load_ui32, n32_bytes)
+		|| check_int<uint_least64_t, 9, 0>(serial__store_ui64, serial__load_ui64, n64_bytes)
+		|| check_int<int_least16_t, 3, 1>(serial__store_i16, serial__load_i16, n16_bytes)
+		|| check_int<int_least32_t, 5, 1>(serial__store_i32, serial__load_i32, n32_bytes)
+		|| check_int<int_least64_t, 9, 1>(serial__store_i64, serial__load_i64, n64_bytes)
 	);
 }

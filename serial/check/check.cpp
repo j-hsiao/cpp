@@ -15,13 +15,13 @@ int main(int argc, char *argv[])
 	if (prog == "rep")
 	{
 		if (~0 == 0)
-		{ std::cout << "one's complement" << std::endl; }
+		{ std::cout << "ONE" << std::endl; }
 		else if (~0 == -1)
-		{ std::cout << "two's complement" << std::endl; }
+		{ std::cout << "TWO" << std::endl; }
 		else if (~0 == -INT_MAX)
-		{ std::cout << "sign magnitude" << std::endl; }
+		{ std::cout << "SMAG" << std::endl; }
 		else
-		{ std::cout << "unknown" << std::endl; }
+		{ std::cout << "UNKNOWN" << std::endl; }
 	}
 	else if (prog == "endian")
 	{
@@ -37,11 +37,11 @@ int main(int argc, char *argv[])
 			little = little && bytes[i] == i+1;
 		}
 		if (little && !big)
-		{ std::cout << "little" << std::endl; }
+		{ std::cout << "LITTLE" << std::endl; }
 		else if (big && !little)
-		{ std::cout << "big" << std::endl; }
+		{ std::cout << "BIG" << std::endl; }
 		else
-		{ std::cout << "unknown" << std::endl; }
+		{ std::cout << "UNKNOWN" << std::endl; }
 	}
 	else
 	{
