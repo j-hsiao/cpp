@@ -1,3 +1,13 @@
+// Integers are stored in big endian order.
+// Note, I've never encountered a system where CHAR_BIT > 8 so
+// not sure how storing bytes would work on that system,
+// but bytes are stored with values from 0 to 255 byte by byte.
+// Signed integers are stored using 2s complement.
+//
+// floats are stored in IEEE 754 big endian format.
+// Note that nans may not necessarily be preserved as is 
+// (signalling vs non-signalling) and the actual mantissa bits
+// may vary.
 #ifndef SERIAL_H
 #define SERIAL_H
 

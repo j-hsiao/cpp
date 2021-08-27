@@ -1,5 +1,6 @@
 #include <serial/serial.h>
 
+#include <cmath>
 #include <cstring>
 #include <cstdint>
 #include <climits>
@@ -122,6 +123,163 @@ int check_int(
 	return 0;
 }
 
+int check_fp32()
+{
+	std::cerr << "testing fp32" << std::endl;
+	std::vector<float> fvalues{
+		1.0f / 0.0f,
+		-1.0f / 0.0f,
+		0,
+		0.15625,
+		1.401298464324817e-45,
+		0.0f / 0.0f,
+		3.4028235e+38,
+		1.7014118e+38
+	};
+	const unsigned char fbytes[][5] = {
+		"\x7F\x80\x00\x00",
+		"\xFF\x80\x00\x00",
+		"\x00\x00\x00\x00",
+		"\x3E\x20\x00\x00",
+		"\x00\x00\x00\x01",
+		"\x7F\xC0\x00\x00",
+		"\x7F\x7F\xFF\xFF",
+		"\x7F\x00\x00\x00"
+	};
+	unsigned char buf[4];
+	for (int i=0; i<fvalues.size(); ++i)
+	{
+		if (std::isinf(fvalues[i]))
+		{
+			float result = serial__load_fp32(fbytes[i]);
+			if (!(std::isinf(result) && (result * fvalues[i])>0))
+			{
+				std::cerr << "decoding " << fvalues[i] << " failed" << std::endl;
+				return 1;
+			}
+			std::memset(buf, 0, 4);
+			serial__store_fp32(buf, fvalues[i]);
+			if (std::memcmp(fbytes[i], buf, 4))
+			{
+				std::cerr << "encoding " << fvalues[i] << " failed" << std::endl;
+				return 1;
+			}
+		}
+		else if (std::isnan(fvalues[i]))
+		{
+			if (!std::isnan(serial__load_fp32(fbytes[i])))
+			{
+				std::cerr << "decoding " << fvalues[i] << " failed" << std::endl;
+				return 1;
+			}
+			std::memset(buf, 0, 4);
+			serial__store_fp32(buf, fvalues[i]);
+			if (
+				((buf[0] & 0x7Fu) != 0x7Fu)
+				|| !(buf[1] & 0x80u)
+				|| !(buf[1] & 0x7Fu || buf[2] || buf[3])
+			)
+			{
+				std::cerr << "encoding " << fvalues[i] << " failed" << std::endl;
+				return 1;
+			}
+		}
+		else
+		{
+			if (serial__load_fp32(fbytes[i]) != fvalues[i])
+			{
+				std::cerr << "decoding " << fvalues[i] << " failed" << std::endl;
+				std::cerr << "got " << serial__load_fp32(fbytes[i]) << std::endl;
+				return 1;
+			}
+			std::memset(buf, 0, 4);
+			serial__store_fp32(buf, fvalues[i]);
+			if (std::memcmp(buf, fbytes[i], 4))
+			{
+				std::cerr << "encoding " << fvalues[i] << " failed" << std::endl;
+				return 1;
+			}
+		}
+	}
+	std::cerr << "passed" << std::endl;
+	return 0;
+}
+
+int check_fp64()
+{
+	std::cerr << "testing fp64" << std::endl;
+	std::vector<double> fvalues{
+		0,
+		1.0 / 0.0,
+		-1.0 / 0.0,
+		0.0 / 0.0
+	};
+	const unsigned char fbytes[][9] = {
+		"\x00\x00\x00\x00\x00\x00\x00\x00",
+		"\x7F\xF0\x00\x00\x00\x00\x00\x00",
+		"\xFF\xF0\x00\x00\x00\x00\x00\x00",
+		"\x7F\xF8\x00\x00\x00\x00\x00\x00"
+	};
+	unsigned char buf[8];
+	for (int i=0; i<fvalues.size(); ++i)
+	{
+		if (std::isinf(fvalues[i]))
+		{
+			double result = serial__load_fp64(fbytes[i]);
+			if (!(std::isinf(result) && (result * fvalues[i])>0))
+			{
+				std::cerr << "decoding " << fvalues[i] << " failed" << std::endl;
+				std::cerr << "got " << result << std::endl;
+				return 1;
+			}
+			std::memset(buf, 0, 8);
+			serial__store_fp64(buf, fvalues[i]);
+			if (std::memcmp(fbytes[i], buf, 8))
+			{
+				std::cerr << "encoding " << fvalues[i] << " failed" << std::endl;
+				return 1;
+			}
+		}
+		else if (std::isnan(fvalues[i]))
+		{
+			if (!std::isnan(serial__load_fp64(fbytes[i])))
+			{
+				std::cerr << "decoding " << fvalues[i] << " failed" << std::endl;
+				return 1;
+			}
+			std::memset(buf, 0, 8);
+			serial__store_fp64(buf, fvalues[i]);
+			if (
+				((buf[0] & 0x7Fu) != 0x7Fu)
+				|| !(buf[1] & 0xF0u)
+				|| !(buf[1] & 0x0Fu || buf[2] || buf[3] || buf[4] || buf[5] || buf[6] || buf[7])
+			)
+			{
+				std::cerr << "encoding " << fvalues[i] << " failed" << std::endl;
+				return 1;
+			}
+		}
+		else
+		{
+			if (serial__load_fp64(fbytes[i]) != fvalues[i])
+			{
+				std::cerr << "decoding " << fvalues[i] << " failed" << std::endl;
+				std::cerr << "got " << serial__load_fp64(fbytes[i]) << std::endl;
+				return 1;
+			}
+			std::memset(buf, 0, 8);
+			serial__store_fp64(buf, fvalues[i]);
+			if (std::memcmp(buf, fbytes[i], 8))
+			{
+				std::cerr << "encoding " << fvalues[i] << " failed" << std::endl;
+				return 1;
+			}
+		}
+	}
+	std::cerr << "passed" << std::endl;
+	return 0;
+}
+
 
 int main(int argc, char *argv[])
 {
@@ -132,5 +290,7 @@ int main(int argc, char *argv[])
 		|| check_int<int_least16_t, 3, 1>(serial__store_i16, serial__load_i16, n16_bytes)
 		|| check_int<int_least32_t, 5, 1>(serial__store_i32, serial__load_i32, n32_bytes)
 		|| check_int<int_least64_t, 9, 1>(serial__store_i64, serial__load_i64, n64_bytes)
+		|| check_fp32()
+		|| check_fp64()
 	);
 }

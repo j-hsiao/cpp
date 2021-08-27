@@ -1,13 +1,3 @@
-// Integers are stored in big endian order
-// Note, never encountered a system where CHAR_BIT > 8 so
-// not sure how storing bytes would work on that system
-// but bytes are stored with values from 0 to 255 byte by byte.
-// Signed integers are stored using 2s complement.
-//
-// for unoptimized loading, because of integer promotion
-// and int only guaranteed to have >= 16 bits, any shift
-// by 8 is first cast. (Don't know if shift is affected at all by
-// integer representation).
 #include <serial/serial_dllcfg.h>
 
 #include <string.h>
