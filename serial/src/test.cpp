@@ -317,12 +317,13 @@ void ttest(
 		std::cerr << "alignment failed" << std::endl;
 		return;
 	}
-	T *tsrc = new(asrc) T();
-	T *tdst = new(adst) T();
-	for (std::size_t i=1; i<dsize; ++i)
+	T *tsrc = new(asrc) T[dsize];
+	T *tdst = new(adst) T[dsize];
+	if (tsrc != asrc || adst != tdst)
 	{
-		new(asrc+i) T();
-		new(adst+i) T();
+		std::cerr << "placement new did not return same address "
+			"as aligned, skipping test" << std::endl;
+		return;
 	}
 	timeutil::Clocker timer;
 	timer.tic();
