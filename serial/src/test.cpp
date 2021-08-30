@@ -1,5 +1,7 @@
 #include <serial/serial.h>
+#include <timeutil/timeutil.hpp>
 
+#include <cctype>
 #include <cmath>
 #include <cstring>
 #include <cstdint>
@@ -7,6 +9,9 @@
 #include <iostream>
 #include <typeinfo>
 #include <vector>
+#include <map>
+#include <memory>
+#include <type_traits>
 
 
 const unsigned char n16_bytes[][3] = {
@@ -212,13 +217,19 @@ int check_fp64()
 		0,
 		1.0 / 0.0,
 		-1.0 / 0.0,
-		0.0 / 0.0
+		0.0 / 0.0,
+		0.15625,
+		5e-324,
+		1.7976931348623157e+308
 	};
 	const unsigned char fbytes[][9] = {
 		"\x00\x00\x00\x00\x00\x00\x00\x00",
 		"\x7F\xF0\x00\x00\x00\x00\x00\x00",
 		"\xFF\xF0\x00\x00\x00\x00\x00\x00",
-		"\x7F\xF8\x00\x00\x00\x00\x00\x00"
+		"\x7F\xF8\x00\x00\x00\x00\x00\x00",
+		"\x3F\xC4\x00\x00\x00\x00\x00\x00",
+		"\x00\x00\x00\x00\x00\x00\x00\x01",
+		"\x7F\xEF\xFF\xFF\xFF\xFF\xFF\xFF"
 	};
 	unsigned char buf[8];
 	for (int i=0; i<fvalues.size(); ++i)
@@ -280,6 +291,100 @@ int check_fp64()
 	return 0;
 }
 
+template<
+	class T, int nbytes,
+	void store(unsigned char *data, T value),
+	T load(const unsigned char *data)
+>
+void ttest(
+	std::size_t dsize,
+	std::vector<unsigned char> &buf,
+	std::vector<unsigned char> &vsrc,
+	std::vector<unsigned char> &vdst)
+{
+	std::cerr << "type: " << typeid(T).name()
+		<< "\tnbytes: " << nbytes << std::endl;
+	void *psrc = &vsrc[0];
+	void *pdst = &vdst[0];
+	std::size_t ssrc = vsrc.size();
+	std::size_t sdst = vdst.size();
+	T *asrc = reinterpret_cast<T*>(std::align(
+		std::alignment_of<T>::value, sizeof(T) * dsize, psrc, ssrc));
+	T *adst = reinterpret_cast<T*>(std::align(
+		std::alignment_of<T>::value, sizeof(T) * dsize, pdst, sdst));
+	if (!asrc || !adst)
+	{
+		std::cerr << "alignment failed" << std::endl;
+		return;
+	}
+	T *tsrc = new(asrc) T();
+	T *tdst = new(adst) T();
+	for (std::size_t i=1; i<dsize; ++i)
+	{
+		new(asrc+i) T();
+		new(adst+i) T();
+	}
+	timeutil::Clocker timer;
+	timer.tic();
+	for (std::size_t i=0; i < dsize; ++i)
+	{ store(&buf[i*nbytes], tsrc[i]); }
+	double tdelta = timer.toc();
+	std::cerr << "storing: " << tdelta << std::endl;
+
+	timer.tic();
+	for (std::size_t i=0; i < dsize; ++i)
+	{ tdst[i] = load(&buf[i*nbytes]); }
+	tdelta = timer.toc();
+	std::cerr << "loading: " << tdelta << std::endl;
+}
+
+int timetest(int argc, char *argv[])
+{
+	if (argc <= 1) { return 0; }
+	std::size_t dsize = 1;
+	{
+		std::map<char, std::size_t> sizes = {
+			{'k', 1024},
+			{'m', 1024*1024},
+			{'g', 1024*1024*1024}
+		};
+		dsize = 1;
+		for (int i=1; i < argc; ++i)
+		{
+			std::string amt = argv[1];
+			std::size_t multiplier = 1;
+			if (!std::isdigit(amt.back()))
+			{
+				char spec = std::tolower(amt.back());
+				multiplier = sizes[spec] ? sizes[spec] : 1;
+				amt.pop_back();
+			}
+			try
+			{
+				dsize = std::stoull(amt) * multiplier;
+			} catch (...) {}
+		}
+	}
+	std::size_t dblalign = std::alignment_of<double>::value;
+	std::size_t ui64align = std::alignment_of<uint_least64_t>::value;
+	std::size_t align = dblalign > ui64align ? dblalign : ui64align;
+
+	std::cerr << "timing test, num items: " << dsize << std::endl;
+	std::vector<unsigned char> buf(dsize * 8);
+	std::vector<unsigned char> src((dsize+1) * align);
+	std::vector<unsigned char> dst((dsize+1) * align);
+
+	ttest<int_least16_t, 2, serial__store_i16, serial__load_i16>(dsize, buf, src, dst);
+	ttest<int_least32_t, 4, serial__store_i32, serial__load_i32>(dsize, buf, src, dst);
+	ttest<int_least64_t, 8, serial__store_i64, serial__load_i64>(dsize, buf, src, dst);
+	ttest<uint_least16_t, 2, serial__store_ui16, serial__load_ui16>(dsize, buf, src, dst);
+	ttest<uint_least32_t, 4, serial__store_ui32, serial__load_ui32>(dsize, buf, src, dst);
+	ttest<uint_least64_t, 8, serial__store_ui64, serial__load_ui64>(dsize, buf, src, dst);
+	ttest<float, 4, serial__store_fp32, serial__load_fp32>(dsize, buf, src, dst);
+	ttest<double, 8, serial__store_fp64, serial__load_fp64>(dsize, buf, src, dst);
+
+	return 0;
+}
 
 int main(int argc, char *argv[])
 {
@@ -292,5 +397,6 @@ int main(int argc, char *argv[])
 		|| check_int<int_least64_t, 9, 1>(serial__store_i64, serial__load_i64, n64_bytes)
 		|| check_fp32()
 		|| check_fp64()
+		|| timetest(argc, argv)
 	);
 }

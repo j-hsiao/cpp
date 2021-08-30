@@ -86,14 +86,16 @@ configure_file(
 	"${CMAKE_CURRENT_BINARY_DIR}/include/serial/serial_impl.h"
 	@ONLY)
 
-
-
 add_library(serial src/serial.cpp)
 configure_dll()
 install_project(include/serial ${CMAKE_CURRENT_BINARY_DIR}/include/serial)
 
 if (BUILD_TESTING)
+	add_subdirectory(
+		"${CMAKE_CURRENT_SOURCE_DIR}/../timeutil"
+		"${CMAKE_CURRENT_BINARY_DIR}/timeutil"
+		EXCLUDE_FROM_ALL)
 	add_executable(serialtest ./src/test.cpp)
-	target_link_libraries(serialtest PRIVATE serial)
+	target_link_libraries(serialtest PRIVATE serial timeutil)
 	add_test(NAME serial COMMAND serialtest)
 endif()
