@@ -1,3 +1,4 @@
+#include <serial/serial.hpp>
 #include <serial/serial.h>
 #include <timeutil/timeutil.hpp>
 
@@ -89,7 +90,7 @@ int check_int(
 	T (*load)(const unsigned char *data),
 	const unsigned char (*bins)[bsize])
 {
-	int bits = (bsize-1)*8;
+	const int bits = (bsize-1)*8;
 	std::cerr << "testing " << bits << " bit "
 		<< (issigned ? "": "un") << "signed integer" << std::endl;
 
@@ -99,7 +100,7 @@ int check_int(
 		T value = static_cast<T>(uvalues[i]);
 		store(&buf[0], value);
 
-		if (memcmp(bins[i], &buf[0], buf.size()))
+		if (std::memcmp(bins[i], &buf[0], buf.size()))
 		{
 			std::cerr << "store failed: " << value << std::endl;
 			return 1;
@@ -121,6 +122,28 @@ int check_int(
 				std::cerr << "loaded result: " << load(&buf[0]) << std::endl;
 				return 1;
 			}
+		}
+	}
+	//cpp test
+	std::vector<unsigned char> buf(
+		serial::Loader<T, bsize*8>::nbytes(bits-issigned));
+	if (issigned)
+	{
+		serial::store<serial::tp::Signed, bits>(
+			&buf[0], uvalues, uvalues + (bits-issigned));
+	}
+	else
+	{
+		serial::store<serial::tp::Unsigned, bits>(
+			&buf[0], uvalues, uvalues + (bits-issigned));
+	}
+	std::memcmp
+	for (int i=0; i< bits-issigned; ++i)
+	{
+		if (std::memcmp(bins[i], &buf[i * (bits/8)], bits / 8))
+		{
+			std::cerr << "value " << i << "was wrong in cpp range store" << std::endl;
+			return 1;
 		}
 	}
 
