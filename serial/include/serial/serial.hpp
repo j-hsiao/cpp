@@ -14,11 +14,11 @@ namespace serial
 	{
 		static std::size_t nbytes(std::size_t num_elems=1)
 		{ return num_elems * (nbits / 8); }
-	}
+	};
 
 
 	template<tp, int nbits>
-	struct Loader {};
+	struct Loader;
 
 	template<>
 	struct Loader<tp::Signed, 16>: Loadcfg<16>

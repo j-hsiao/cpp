@@ -12,58 +12,66 @@
 #define SERIAL_SMAG_REP 3
 #define SERIAL_UNKNOWN_REP 4
 
+#define SERIAL_CPFP32 @cpfp32@
+#define SERIAL_CPFP64 @cpfp64@
+
 #define SERIAL_ENDIAN SERIAL_@SERIAL_ENDIAN@_ENDIAN
 #define SERIAL_REP SERIAL_@SERIAL_REP@_REP
 
 
 CPP_EXTERNC_BEGIN
-// strict aliasing:
-// signed* to unsigned* and dereferencing result is allowed
-// However, typecasting signed to unsigned may be undefined
-// as a result, because data is stored into unsigned char*
-// all signed store/load will typealias and call unsigned
-// versions
-//
-// Just a side note, maybe fix it if I ever encounter an issue but...
-// 0xFF as bitmask assumes 2's complement right? What if
-// not 2's complement? Does that mean I have to explicitly
-// calculate all the bits in a 2's complement representation?
-// (Divide by 2, mod 1?, store the bit via shifts if applicable?)
-// The code here actually only addresses the endianness issue.
+inline void serial__swap_2B(unsigned char *dst, const unsigned char *src)
+{
+	dst[0] = src[1];
+	dst[1] = src[0];
+}
+inline void serial__swap_4B(unsigned char *dst, const unsigned char *src)
+{
+	dst[0] = src[3];
+	dst[1] = src[2];
+	dst[2] = src[1];
+	dst[3] = src[0];
+}
+inline void serial__swap_8B(unsigned char *dst, const unsigned char *src)
+{
+	dst[0] = src[7];
+	dst[1] = src[6];
+	dst[2] = src[5];
+	dst[3] = src[4];
+	dst[4] = src[3];
+	dst[5] = src[2];
+	dst[6] = src[1];
+	dst[7] = src[0];
+}
 
-//unsigned only depends on endianness
+#if SERIAL_ENDIAN == SERIAL_BIG_ENDIAN
+inline void serial__store_2B(unsigned char *dst, const unsigned char *src)
+{ memcpy(dst, src, 2); }
+inline void serial__store_4B(unsigned char *dst, const unsigned char *src)
+{ memcpy(dst, src, 4); }
+inline void serial__store_8B(unsigned char *dst, const unsigned char *src)
+{ memcpy(dst, src, 8); }
+#else
+inline void serial__store_2B(unsigned char *dst, const unsigned char *src)
+{ serial__swap_2B(dst, src); }
+inline void serial__store_4B(unsigned char *dst, const unsigned char *src)
+{ serial__swap_4B(dst, src); }
+inline void serial__store_8B(unsigned char *dst, const unsigned char *src)
+{ serial__swap_8B(dst, src); }
+#endif
 
 
 #define SERIAL_OPT (CHAR_BIT==8 && SERIAL_ENDIAN!=SERIAL_UNKNOWN_ENDIAN)
 
 #if defined(UINT16_MAX) && SERIAL_OPT
-
-#if SERIAL_ENDIAN == SERIAL_BIG_ENDIAN
 inline void serial__store_ui16(unsigned char *data, uint_least16_t value)
-{ memcpy(data, &value, sizeof(value)); }
+{ serial__store_2B(data, (unsigned char*) &value); }
 inline uint_least16_t serial__load_ui16(const unsigned char *data)
 {
 	uint_least16_t value;
-	memcpy(&value, data, sizeof(value));
+	serial__store_2B((unsigned char*) &value, data);
 	return value;
 }
-#else
-inline void serial__store_ui16(unsigned char *data, uint_least16_t value)
-{
-	const unsigned char *src = (unsigned char *) &value;
-	data[0] = src[1];
-	data[1] = src[0];
-}
-inline uint_least16_t serial__load_ui16(const unsigned char *data)
-{
-	uint_least16_t value;
-	unsigned char *dst = (unsigned char *) &value;
-	dst[0] = data[1];
-	dst[1] = data[0];
-	return value;
-}
-#endif
-
 #else
 inline void serial__store_ui16(unsigned char *data, uint_least16_t value)
 {
@@ -78,37 +86,14 @@ inline uint_least16_t serial__load_ui16(const unsigned char *data)
 
 
 #if defined(UINT32_MAX) && SERIAL_OPT
-
-#if SERIAL_ENDIAN == SERIAL_BIG_ENDIAN
 inline void serial__store_ui32(unsigned char *data, uint_least32_t value)
-{ memcpy(data, &value, sizeof(value)); }
+{ serial__store_4B(data, (unsigned char*) &value); }
 inline uint_least32_t serial__load_ui32(const unsigned char *data)
 {
 	uint_least32_t value;
-	memcpy(&value, data, sizeof(value));
+	serial__store_4B((unsigned char*) &value, data);
 	return value;
 }
-#else
-inline void serial__store_ui32(unsigned char *data, uint_least32_t value)
-{
-	const unsigned char *src = (unsigned char *) &value;
-	data[0] = src[3];
-	data[1] = src[2];
-	data[2] = src[1];
-	data[3] = src[0];
-}
-inline uint_least32_t serial__load_ui32(const unsigned char *data)
-{
-	uint_least32_t value;
-	unsigned char *dst = (unsigned char *) &value;
-	dst[0] = data[3];
-	dst[1] = data[2];
-	dst[2] = data[1];
-	dst[3] = data[0];
-	return value;
-}
-#endif
-
 #else
 inline void serial__store_ui32(unsigned char *data, uint_least32_t value)
 {
@@ -127,45 +112,14 @@ inline uint_least32_t serial__load_ui32(const unsigned char *data)
 
 
 #if defined(UINT64_MAX) && SERIAL_OPT
-
-#if SERIAL_ENDIAN == SERIAL_BIG_ENDIAN
 inline void serial__store_ui64(unsigned char *data, uint_least64_t value)
-{ memcpy(data, &value, sizeof(value)); }
+{ serial__store_8B(data, (unsigned char*) &value); }
 inline uint_least64_t serial__load_ui64(const unsigned char *data)
 {
 	uint_least64_t value;
-	memcpy(&value, data, sizeof(value));
+	serial__store_8B((unsigned char*) &value, data);
 	return value;
 }
-#else
-inline void serial__store_ui64(unsigned char *data, uint_least64_t value)
-{
-	const unsigned char *src = (unsigned char*) &value;
-	data[0] = src[7];
-	data[1] = src[6];
-	data[2] = src[5];
-	data[3] = src[4];
-	data[4] = src[3];
-	data[5] = src[2];
-	data[6] = src[1];
-	data[7] = src[0];
-}
-inline uint_least64_t serial__load_ui64(const unsigned char *data)
-{
-	uint_least64_t value;
-	unsigned char *dst = (unsigned char*) &value;
-	dst[0] = data[7];
-	dst[1] = data[6];
-	dst[2] = data[5];
-	dst[3] = data[4];
-	dst[4] = data[3];
-	dst[5] = data[2];
-	dst[6] = data[1];
-	dst[7] = data[0];
-	return value;
-}
-#endif
-
 #else
 inline void serial__store_ui64(unsigned char *data, uint_least64_t value)
 {
@@ -264,4 +218,5 @@ inline int_least64_t serial__load_i64(const unsigned char *data)
 	return v;
 }
 #endif
+
 CPP_EXTERNC_END

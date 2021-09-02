@@ -56,6 +56,26 @@ execute_process(
 message("checking irep\n${err}")
 message("int rep is ${irep}")
 
+execute_process(
+	COMMAND
+		"${CMAKE_CURRENT_BINARY_DIR}/check/checktools/serialcheck"
+		fp32
+	OUTPUT_VARIABLE cpfp32
+	ERROR_VARIABLE err
+	OUTPUT_STRIP_TRAILING_WHITESPACE)
+message("checking fp32\n${err}")
+message("fp32 is ${cpfp32}")
+
+execute_process(
+	COMMAND
+		"${CMAKE_CURRENT_BINARY_DIR}/check/checktools/serialcheck"
+		fp64
+	OUTPUT_VARIABLE cpfp64
+	ERROR_VARIABLE err
+	OUTPUT_STRIP_TRAILING_WHITESPACE)
+message("checking fp64\n${err}")
+message("fp64 is ${cpfp64}")
+
 if (
 	endianness STREQUAL "LITTLE"
 	OR endianness STREQUAL "BIG"

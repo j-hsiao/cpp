@@ -90,60 +90,71 @@ int check_int(
 	T (*load)(const unsigned char *data),
 	const unsigned char (*bins)[bsize])
 {
-	const int bits = (bsize-1)*8;
-	std::cerr << "testing " << bits << " bit "
+	const int nbytes = bsize-1;
+	const int nbits = nbytes*8;
+	std::cerr << "testing " << nbits << " bit "
 		<< (issigned ? "": "un") << "signed integer" << std::endl;
 
-	std::vector<unsigned char> buf(bits / 8);
-	for (int i=0; i < bits-issigned; ++i)
 	{
-		T value = static_cast<T>(uvalues[i]);
-		store(&buf[0], value);
+		std::vector<unsigned char> buf(nbits / 8);
+		for (int i=0; i < nbits-issigned; ++i)
+		{
+			T value = static_cast<T>(uvalues[i]);
+			store(&buf[0], value);
 
-		if (std::memcmp(bins[i], &buf[0], buf.size()))
-		{
-			std::cerr << "store failed: " << value << std::endl;
-			return 1;
-		}
-		if (load(bins[i]) != value)
-		{
-			std::cerr << "load failed: " << value << std::endl;
-			return 1;
-		}
-		if (issigned)
-		{
-			for (unsigned char &c : buf)
-			{ c = ~c; }
-			if (load(&buf[0]) + value != -1)
+			if (std::memcmp(bins[i], &buf[0], buf.size()))
 			{
-				std::cerr << "load bitflipped binary failed" << std::endl;
-				std::cerr << "value: " << value << std::endl;
-				std::cerr << "expected bitflipped: " << (-1 - value) << std::endl;
-				std::cerr << "loaded result: " << load(&buf[0]) << std::endl;
+				std::cerr << "store failed: " << value << std::endl;
 				return 1;
+			}
+			if (load(bins[i]) != value)
+			{
+				std::cerr << "load failed: " << value << std::endl;
+				return 1;
+			}
+			if (issigned)
+			{
+				for (unsigned char &c : buf)
+				{ c = ~c; }
+				if (load(&buf[0]) + value != -1)
+				{
+					std::cerr << "load bitflipped binary failed" << std::endl;
+					std::cerr << "value: " << value << std::endl;
+					std::cerr << "expected bitflipped: " << (-1 - value) << std::endl;
+					std::cerr << "loaded result: " << load(&buf[0]) << std::endl;
+					return 1;
+				}
 			}
 		}
 	}
 	//cpp test
-	std::vector<unsigned char> buf(
-		serial::Loader<T, bsize*8>::nbytes(bits-issigned));
-	if (issigned)
 	{
-		serial::store<serial::tp::Signed, bits>(
-			&buf[0], uvalues, uvalues + (bits-issigned));
-	}
-	else
-	{
-		serial::store<serial::tp::Unsigned, bits>(
-			&buf[0], uvalues, uvalues + (bits-issigned));
-	}
-	std::memcmp
-	for (int i=0; i< bits-issigned; ++i)
-	{
-		if (std::memcmp(bins[i], &buf[i * (bits/8)], bits / 8))
+		const serial::tp ssign = (
+			issigned ? serial::tp::Signed : serial::tp::Unsigned);
+		std::vector<unsigned char> buf(
+			serial::Loadcfg<nbits>::nbytes(nbits-issigned));
+		std::vector<unsigned char> expected(
+			serial::Loadcfg<nbits>::nbytes(nbits-issigned));
+		for (int i=0; i<nbits-issigned; ++i)
+		{ std::memcpy(&expected[i*nbytes], bins[i], nbytes); }
+		serial::store<ssign, nbits>(&buf[0], uvalues, uvalues + (nbits-issigned));
+		if (std::memcmp(&buf[0], &expected[0], buf.size()))
 		{
-			std::cerr << "value " << i << "was wrong in cpp range store" << std::endl;
+			std::cerr << "serial::store failed" << std::endl;
+			printbytes(buf.begin(), buf.size());
+			printbytes(expected.begin(), expected.size());
 			return 1;
+		}
+		std::vector<T> sloaded(nbits-issigned);
+		serial::load<ssign, nbits>(&buf[0], sloaded.begin(), sloaded.end());
+		for (std::size_t i = 0; i < sloaded.size(); ++i)
+		{
+			if (sloaded[i] != uvalues[i])
+			{
+				std::cerr << "failed restoring item " << i << ": " << uvalues[i]
+					<< ", got " << sloaded[i] << std::endl;
+				return 1;
+			}
 		}
 	}
 
