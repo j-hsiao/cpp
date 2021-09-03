@@ -22,7 +22,7 @@ else()
 endif()
 execute_process(
 	COMMAND
-		"${CMAKE_COMMAND}" "${CMAKE_CURRENT_LIST_DIR}/check"
+		"${CMAKE_COMMAND}" "${CMAKE_CURRENT_LIST_DIR}/../sysinfo"
 		-G "${CMAKE_GENERATOR}" ${genopt}
 	WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/check"
 	ERROR_VARIABLE err)
@@ -38,7 +38,7 @@ message("build checks\n${err}")
 
 execute_process(
 	COMMAND
-		"${CMAKE_CURRENT_BINARY_DIR}/check/checktools/serialcheck"
+		"${CMAKE_CURRENT_BINARY_DIR}/check/bin/sysinfo"
 		endian
 	OUTPUT_VARIABLE endianness
 	ERROR_VARIABLE err
@@ -48,7 +48,7 @@ message("endianness is ${endianness}")
 
 execute_process(
 	COMMAND
-		"${CMAKE_CURRENT_BINARY_DIR}/check/checktools/serialcheck"
+		"${CMAKE_CURRENT_BINARY_DIR}/check/bin/sysinfo"
 		rep
 	OUTPUT_VARIABLE irep
 	ERROR_VARIABLE err
@@ -58,7 +58,7 @@ message("int rep is ${irep}")
 
 execute_process(
 	COMMAND
-		"${CMAKE_CURRENT_BINARY_DIR}/check/checktools/serialcheck"
+		"${CMAKE_CURRENT_BINARY_DIR}/check/bin/sysinfo"
 		fp32
 	OUTPUT_VARIABLE cpfp32
 	ERROR_VARIABLE err
@@ -68,7 +68,7 @@ message("fp32 is ${cpfp32}")
 
 execute_process(
 	COMMAND
-		"${CMAKE_CURRENT_BINARY_DIR}/check/checktools/serialcheck"
+		"${CMAKE_CURRENT_BINARY_DIR}/check/bin/sysinfo"
 		fp64
 	OUTPUT_VARIABLE cpfp64
 	ERROR_VARIABLE err

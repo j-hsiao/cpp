@@ -123,13 +123,7 @@ namespace
 
 int main(int argc, char *argv[])
 {
-	if (argc <= 1)
-	{ 
-		std::cerr << "missing argument: 'endian' or 'rep'" << std::endl;
-		return -1;
-	}
-
-	std::string prog = argv[1];
+	std::string prog = argc > 1 ? argv[1] : "";
 	if (prog == "rep")
 	{
 		if (~0 == 0)
@@ -163,7 +157,15 @@ int main(int argc, char *argv[])
 	}
 	else
 	{
-		std::cerr << "unknown command: \"" << prog << '"' << std::endl;
+		if (prog.size())
+		{ std::cerr << "unknown command: \"" << prog << '"' << std::endl; }
+		std::cerr << (
+			"Arguments required: <command>\n"
+			"rep: integer representation:\n"
+			"  ONE: one's complement\n"
+			"  TWO: two's complement\n"
+			"  SMAG: sign/magnitude\n"
+		) << std::endl;
 		return -1;
 	}
 	return 0;
