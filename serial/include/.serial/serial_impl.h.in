@@ -3,6 +3,8 @@
 #include <string.h>
 #include <limits.h>
 
+#include <iostream>
+
 #define SERIAL_LITTLE_ENDIAN 1
 #define SERIAL_BIG_ENDIAN 2
 #define SERIAL_UNKNOWN_ENDIAN 3
@@ -12,8 +14,8 @@
 #define SERIAL_SMAG_REP 3
 #define SERIAL_UNKNOWN_REP 4
 
-#define SERIAL_CPFP32 @cpfp32@
-#define SERIAL_CPFP64 @cpfp64@
+#define SERIAL_CPFP32 @CPFP32@
+#define SERIAL_CPFP64 @CPFP64@
 
 #define SERIAL_ENDIAN SERIAL_@SERIAL_ENDIAN@_ENDIAN
 #define SERIAL_REP SERIAL_@SERIAL_REP@_REP
@@ -216,6 +218,28 @@ inline int_least64_t serial__load_i64(const unsigned char *data)
 	if (v >> 63)
 	{ return -1 - (int_least64_t) ~v; }
 	return v;
+}
+#endif
+
+#if SERIAL_CPFP32
+inline void serial__store_fp32(unsigned char *data, float value)
+{ serial__store_4B(data, (unsigned char*) &value); }
+inline float serial__load_fp32(const unsigned char *data)
+{
+	float value;
+	serial__store_4B((unsigned char*) &value, data);
+	return value;
+}
+#endif
+
+#if SERIAL_CPFP64
+inline void serial__store_fp64(unsigned char *data, double value)
+{ serial__store_8B(data, (unsigned char*) &value); }
+inline double serial__load_fp64(const unsigned char *data)
+{
+	double value;
+	serial__store_8B((unsigned char*) &value, data);
+	return value;
 }
 #endif
 

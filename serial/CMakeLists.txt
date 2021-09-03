@@ -24,6 +24,7 @@ execute_process(
 	COMMAND
 		"${CMAKE_COMMAND}" "${CMAKE_CURRENT_LIST_DIR}/../sysinfo"
 		-G "${CMAKE_GENERATOR}" ${genopt}
+		-DCMAKE_INSTALL_PREFIX=.
 	WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/check"
 	ERROR_VARIABLE err)
 message("configure check\n${err}")
@@ -65,6 +66,7 @@ execute_process(
 	OUTPUT_STRIP_TRAILING_WHITESPACE)
 message("checking fp32\n${err}")
 message("fp32 is ${cpfp32}")
+set(CPFP32 ${cpfp32} CACHE STRING "0/1 is fp32 direct copying okay?")
 
 execute_process(
 	COMMAND
@@ -75,6 +77,7 @@ execute_process(
 	OUTPUT_STRIP_TRAILING_WHITESPACE)
 message("checking fp64\n${err}")
 message("fp64 is ${cpfp64}")
+set(CPFP64 ${cpfp64} CACHE STRING "0/1 is fp64 direct copying okay?")
 
 if (
 	endianness STREQUAL "LITTLE"

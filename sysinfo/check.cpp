@@ -165,6 +165,14 @@ int main(int argc, char *argv[])
 			"  ONE: one's complement\n"
 			"  TWO: two's complement\n"
 			"  SMAG: sign/magnitude\n"
+			"endian: endianness\n"
+			"  BIG: big endian\n"
+			"  LITTLE: little endian\n"
+			"  UNKNOWN: not big or little\n"
+			"fp32: float is 32 bits, matches endianness, and is IEEE 754\n"
+			"  0/1: False/True\n"
+			"fp64: double is 64 bits, matches endianness, and is IEEE 754\n"
+			"  0/1: False/True\n"
 		) << std::endl;
 		return -1;
 	}

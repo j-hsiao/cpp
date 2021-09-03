@@ -15,11 +15,12 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <serial/serial_impl.h>
+
 CPP_EXTERNC_BEGIN
 // For 8-bit numbers just use char/unsigned char, already serialized.
 // The provided data unsigned char *buffer must point to
 // a buffer of size at least serial__IXX_Bytes
-
 static const size_t serial__I16_Bytes = 2;
 static const size_t serial__I32_Bytes = 4;
 static const size_t serial__I64_Bytes = 8;
@@ -43,12 +44,22 @@ inline uint_least16_t serial__load_ui16(const unsigned char *data);
 inline uint_least32_t serial__load_ui32(const unsigned char *data);
 inline uint_least64_t serial__load_ui64(const unsigned char *data);
 
+#if SERIAL_CPFP32
+inline void serial__store_fp32(unsigned char *data, float value);
+inline float serial__load_fp32(const unsigned char *data);
+#else
 void serial__store_fp32(unsigned char *data, float value);
-void serial__store_fp64(unsigned char *data, double value);
 float serial__load_fp32(const unsigned char *data);
+#endif
+
+#if SERIAL_CPFP64
+inline void serial__store_fp64(unsigned char *data, double value);
+inline double serial__load_fp64(const unsigned char *data);
+#else
+void serial__store_fp64(unsigned char *data, double value);
 double serial__load_fp64(const unsigned char *data);
+#endif
 
 CPP_EXTERNC_END
 
-#include <serial/serial_impl.h>
 #endif

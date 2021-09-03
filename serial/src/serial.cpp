@@ -153,61 +153,44 @@ namespace
 	{
 		static_assert(
 			info::nbytes==4 || info::nbytes==8, "Only 4 or 8 byte floats supported.");
-		if (
-			info::exact
-			&& std::numeric_limits<typename info::fp_type>::is_iec559
-			&& sizeof(typename info::fp_type) == info::nbytes
-			&& CHAR_BIT == 8
-		)
-		{
 #if SERIAL_DEBUG
-			std::cerr << "memcpy/int store" << std::endl;
+		std::cerr << "frexp/ldexp decomposition" << std::endl;
 #endif
-			typename info::mant_type asint;
-			std::memcpy(&asint, &value, sizeof(value));
-			info::ustore(data, asint);
+		if (std::isnan(value))
+		{ std::memcpy(data, info::qnan, info::nbytes); }
+		else if (std::isinf(value))
+		{
+			std::memcpy(data, info::inf, info::nbytes);
+			if (value < 0) { data[0] |=  0x80u; }
 		}
+		else if (value == 0)
+		{ std::memset(data, 0, info::nbytes); }
 		else
 		{
-#if SERIAL_DEBUG
-			std::cerr << "frexp/ldexp decomposition" << std::endl;
-#endif
-			if (std::isnan(value))
-			{ std::memcpy(data, info::qnan, info::nbytes); }
-			else if (std::isinf(value))
+			unsigned char sign;
+			if (value < 0)
 			{
-				std::memcpy(data, info::inf, info::nbytes);
-				if (value < 0) { data[0] |=  0x80u; }
+				value *= -1;
+				sign = 0x80u;
 			}
-			else if (value == 0)
-			{ std::memset(data, 0, info::nbytes); }
+			else
+			{ sign = 0u; }
+			int exp;
+			typename info::fp_type mant = std::frexp(value, &exp);
+			exp -= info::exp_min - 1;
+			typename info::mant_type storem;
+			if (exp <= 0)
+			{
+				storem = static_cast<typename info::mant_type>(
+					std::ldexp(mant, info::mant_dig + exp - 1));
+				exp = 0;
+			}
 			else
 			{
-				unsigned char sign;
-				if (value < 0)
-				{
-					value *= -1;
-					sign = 0x80u;
-				}
-				else
-				{ sign = 0u; }
-				int exp;
-				typename info::fp_type mant = std::frexp(value, &exp);
-				exp -= info::exp_min - 1;
-				typename info::mant_type storem;
-				if (exp <= 0)
-				{
-					storem = static_cast<typename info::mant_type>(
-						std::ldexp(mant, info::mant_dig + exp - 1));
-					exp = 0;
-				}
-				else
-				{
-					storem = static_cast<typename info::mant_type>(
-						std::ldexp(mant, info::mant_dig));
-				}
-				info::merge(data, sign, exp, storem);
+				storem = static_cast<typename info::mant_type>(
+					std::ldexp(mant, info::mant_dig));
 			}
+			info::merge(data, sign, exp, storem);
 		}
 	}
 
@@ -216,69 +199,55 @@ namespace
 	{
 		static_assert(
 			info::nbytes==4 || info::nbytes==8, "Only 4 or 8 byte floats supported.");
-		if (
-			info::exact
-			&& std::numeric_limits<typename info::fp_type>::is_iec559
-			&& sizeof(typename info::fp_type) == info::nbytes
-			&& CHAR_BIT == 8
-		)
-		{
 #if SERIAL_DEBUG
-			std::cerr << "memcpy/int load" << std::endl;
+		std::cerr << "frexp/ldexp recomposition" << std::endl;
+		for (int bidx=0; bidx<info::nbytes; ++bidx)
+		{
+			printhex(data[bidx]) << " ";
+		}
+		std::cerr << std::endl;
 #endif
-			typename info::mant_type asint = info::uload(data);
-			typename info::fp_type v;
-			std::memcpy(&v, &asint, sizeof(v));
-			return v;
+		unsigned char sign;
+		int exp;
+		typename info::mant_type mantissa;
+		info::split(data, sign, exp, mantissa);
+
+		if (!exp && !mantissa)
+		{ return sign ? -0.0f : 0.0f; }
+		else if (exp == info::sexp)
+		{
+			return mantissa ? info::nanv : (sign ? -info::infv : info::infv);
 		}
 		else
 		{
-#if SERIAL_DEBUG
-			std::cerr << "frexp/ldexp recomposition" << std::endl;
-			for (int bidx=0; bidx<info::nbytes; ++bidx)
+			if (exp)
 			{
-				printhex(data[bidx]) << " ";
+				exp -= 1;
+				mantissa |= 1ull << info::mant_dig-1;
 			}
-			std::cerr << std::endl;
-#endif
-			unsigned char sign;
-			int exp;
-			typename info::mant_type mantissa;
-			info::split(data, sign, exp, mantissa);
-
-			if (!exp && !mantissa)
-			{ return sign ? -0.0f : 0.0f; }
-			else if (exp == info::sexp)
-			{
-				return mantissa ? info::nanv : (sign ? -info::infv : info::infv);
-			}
-			else
-			{
-				if (exp)
-				{
-					exp -= 1;
-					mantissa |= 1ull << info::mant_dig-1;
-				}
-				typename info::fp_type ret = std::ldexp(
-					mantissa, exp + info::exp_min - info::mant_dig);
-				if (sign) { ret *= -1; }
-				return ret;
-			}
+			typename info::fp_type ret = std::ldexp(
+				mantissa, exp + info::exp_min - info::mant_dig);
+			if (sign) { ret *= -1; }
+			return ret;
 		}
 	}
 }
 
 
 CPP_EXTERNC_BEGIN
+#if !SERIAL_CPFP32
 void serial__store_fp32(unsigned char *data, float value)
 { store_fp<fp32info>(data, value); }
 float serial__load_fp32(const unsigned char *data)
 { return load_fp<fp32info>(data); }
+#endif
 
+#if !SERIAL_CPFP32
 void serial__store_fp64(unsigned char *data, double value)
 { store_fp<fp64info>(data, value); }
 double serial__load_fp64(const unsigned char *data)
 { return load_fp<fp64info>(data); }
+#endif
 
 
 CPP_EXTERNC_END
