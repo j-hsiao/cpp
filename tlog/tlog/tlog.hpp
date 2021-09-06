@@ -5,6 +5,7 @@
 
 namespace
 {
+	// Compile-time addition/removal of logging statements
 	namespace tlog
 	{
 		template<bool verbose>
