@@ -49,16 +49,16 @@ inline uint_least64_t serial__load_ui64(const unsigned char *data);
 inline void serial__store_fp32(unsigned char *data, float value);
 inline float serial__load_fp32(const unsigned char *data);
 #else
-void serial__store_fp32(unsigned char *data, float value);
-float serial__load_fp32(const unsigned char *data);
+SERIAL_API void serial__store_fp32(unsigned char *data, float value);
+SERIAL_API float serial__load_fp32(const unsigned char *data);
 #endif
 
 #if SYSINFO_CPFP64
 inline void serial__store_fp64(unsigned char *data, double value);
 inline double serial__load_fp64(const unsigned char *data);
 #else
-void serial__store_fp64(unsigned char *data, double value);
-double serial__load_fp64(const unsigned char *data);
+SERIAL_API void serial__store_fp64(unsigned char *data, double value);
+SERIAL_API double serial__load_fp64(const unsigned char *data);
 #endif
 
 CPP_EXTERNC_END
