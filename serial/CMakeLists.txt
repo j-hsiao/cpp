@@ -8,108 +8,15 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include("${CMAKE_CURRENT_LIST_DIR}/../common.cmake" NO_POLICY_SCOPE)
 
-execute_process(
-	COMMAND
-		"${CMAKE_COMMAND}"
-		-E make_directory "${CMAKE_CURRENT_BINARY_DIR}/check"
-	ERROR_VARIABLE err)
-message("make check dir\n${err}")
-
-if (CMAKE_GENERATOR_PLATFORM)
-	set(genopt "-DCMAKE_GENERATOR_PLATFORM=${CMAKE_GENERATOR_PLATFORM}")
-else()
-	set(genopt "")
+find_export_package(sysinfo)
+if (NOT sysinfo_FOUND)
+	message("sysinfo not found")
+	build_dependency(sysinfo "${CMAKE_CURRENT_LIST_DIR}/../sysinfo")
+	find_package(sysinfo REQUIRED)
 endif()
-execute_process(
-	COMMAND
-		"${CMAKE_COMMAND}" "${CMAKE_CURRENT_LIST_DIR}/../sysinfo"
-		-G "${CMAKE_GENERATOR}" ${genopt}
-		-DCMAKE_INSTALL_PREFIX=.
-	WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/check"
-	ERROR_VARIABLE err)
-message("configure check\n${err}")
-execute_process(
-	COMMAND
-		"${CMAKE_COMMAND}"
-		--build "${CMAKE_CURRENT_BINARY_DIR}/check"
-		--config "${CMAKE_BUILD_TYPE}"
-		--target install
-	ERROR_VARIABLE err)
-message("build checks\n${err}")
-
-execute_process(
-	COMMAND
-		"${CMAKE_CURRENT_BINARY_DIR}/check/bin/sysinfo"
-		endian
-	OUTPUT_VARIABLE endianness
-	ERROR_VARIABLE err
-	OUTPUT_STRIP_TRAILING_WHITESPACE)
-message("checking endian\n${err}")
-message("endianness is ${endianness}")
-
-execute_process(
-	COMMAND
-		"${CMAKE_CURRENT_BINARY_DIR}/check/bin/sysinfo"
-		rep
-	OUTPUT_VARIABLE irep
-	ERROR_VARIABLE err
-	OUTPUT_STRIP_TRAILING_WHITESPACE)
-message("checking irep\n${err}")
-message("int rep is ${irep}")
-
-execute_process(
-	COMMAND
-		"${CMAKE_CURRENT_BINARY_DIR}/check/bin/sysinfo"
-		fp32
-	OUTPUT_VARIABLE cpfp32
-	ERROR_VARIABLE err
-	OUTPUT_STRIP_TRAILING_WHITESPACE)
-message("checking fp32\n${err}")
-message("fp32 is ${cpfp32}")
-set(CPFP32 ${cpfp32} CACHE STRING "0/1 is fp32 direct copying okay?")
-
-execute_process(
-	COMMAND
-		"${CMAKE_CURRENT_BINARY_DIR}/check/bin/sysinfo"
-		fp64
-	OUTPUT_VARIABLE cpfp64
-	ERROR_VARIABLE err
-	OUTPUT_STRIP_TRAILING_WHITESPACE)
-message("checking fp64\n${err}")
-message("fp64 is ${cpfp64}")
-set(CPFP64 ${cpfp64} CACHE STRING "0/1 is fp64 direct copying okay?")
-
-if (
-	endianness STREQUAL "LITTLE"
-	OR endianness STREQUAL "BIG"
-	OR endianness STREQUAL "UNKNOWN"
-)
-	set(SERIAL_ENDIAN "${endianness}" CACHE STRING "endianness")
-else()
-	message(WARNING "failed to detect endianness was \"${endianness}\", set manually")
-	set(SERIAL_ENDIAN "" CACHE STRING "endianness")
-endif()
-set_property(CACHE SERIAL_ENDIAN PROPERTY STRINGS "LITTLE" "BIG" "UNKNOWN")
-
-if (
-	irep STREQUAL "TWO"
-	OR irep STREQUAL "ONE"
-	OR irep STREQUAL "SMAG"
-	OR irep STREQUAL "UNKNOWN"
-)
-	set(SERIAL_REP "${irep}" CACHE STRING "integer rep")
-else()
-	message(WARNING "failed to detect rep, was \"${irep}\", set manually")
-	set(SERIAL_REP "" CACHE STRING "integer representation")
-endif()
-set_property(CACHE SERIAL_REP PROPERTY STRINGS "TWO" "ONE" "SMAG" "UNKNOWN")
-
-configure_file(
-	"${CMAKE_CURRENT_LIST_DIR}/include/.serial/serial_impl.h.in"
-	"${CMAKE_CURRENT_BINARY_DIR}/include/serial/serial_impl.h"
-	@ONLY)
 
 add_library(serial src/serial.cpp)
+target_link_libraries(serial PUBLIC sysinfo::sysinfo)
 configure_dll()
 install_project(include/serial ${CMAKE_CURRENT_BINARY_DIR}/include/serial)
 

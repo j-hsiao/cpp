@@ -12,10 +12,11 @@
 #define SERIAL_H
 
 #include <serial/serial_dllcfg.h>
+#include <sysinfo/sysinfo.h>
+
 #include <stddef.h>
 #include <stdint.h>
 
-#include <serial/serial_impl.h>
 
 CPP_EXTERNC_BEGIN
 // For 8-bit numbers just use char/unsigned char, already serialized.
@@ -44,7 +45,7 @@ inline uint_least16_t serial__load_ui16(const unsigned char *data);
 inline uint_least32_t serial__load_ui32(const unsigned char *data);
 inline uint_least64_t serial__load_ui64(const unsigned char *data);
 
-#if SERIAL_CPFP32
+#if SYSINFO_CPFP32
 inline void serial__store_fp32(unsigned char *data, float value);
 inline float serial__load_fp32(const unsigned char *data);
 #else
@@ -52,7 +53,7 @@ void serial__store_fp32(unsigned char *data, float value);
 float serial__load_fp32(const unsigned char *data);
 #endif
 
-#if SERIAL_CPFP64
+#if SYSINFO_CPFP64
 inline void serial__store_fp64(unsigned char *data, double value);
 inline double serial__load_fp64(const unsigned char *data);
 #else
@@ -62,4 +63,5 @@ double serial__load_fp64(const unsigned char *data);
 
 CPP_EXTERNC_END
 
+#include <serial/serial_impl.h>
 #endif

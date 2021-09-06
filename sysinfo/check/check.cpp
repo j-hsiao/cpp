@@ -124,7 +124,7 @@ namespace
 int main(int argc, char *argv[])
 {
 	std::string prog = argc > 1 ? argv[1] : "";
-	if (prog == "rep")
+	if (prog == "INTREP")
 	{
 		if (~0 == 0)
 		{ std::cout << "ONE" << std::endl; }
@@ -135,7 +135,7 @@ int main(int argc, char *argv[])
 		else
 		{ std::cout << "UNKNOWN" << std::endl; }
 	}
-	else if (prog == "endian")
+	else if (prog == "ENDIAN")
 	{
 		unsigned long long eci = endian_check_int();
 		bool big = big_endian(eci);
@@ -147,11 +147,11 @@ int main(int argc, char *argv[])
 		else
 		{ std::cout << "UNKNOWN" << std::endl; }
 	}
-	else if (prog == "fp32")
+	else if (prog == "CPFP32")
 	{
 		std::cout << fpchecker<float>().copyable() << std::endl;
 	}
-	else if (prog == "fp64")
+	else if (prog == "CPFP64")
 	{
 		std::cout << fpchecker<double>().copyable() << std::endl;
 	}

@@ -1,4 +1,5 @@
 #include <serial/serial.h>
+#include <sysinfo/sysinfo.h>
 
 #include <cmath>
 #include <cstring>
@@ -235,14 +236,14 @@ namespace
 
 
 CPP_EXTERNC_BEGIN
-#if !SERIAL_CPFP32
+#if !SYSINFO_CPFP32
 void serial__store_fp32(unsigned char *data, float value)
 { store_fp<fp32info>(data, value); }
 float serial__load_fp32(const unsigned char *data)
 { return load_fp<fp32info>(data); }
 #endif
 
-#if !SERIAL_CPFP32
+#if !SYSINFO_CPFP32
 void serial__store_fp64(unsigned char *data, double value)
 { store_fp<fp64info>(data, value); }
 double serial__load_fp64(const unsigned char *data)

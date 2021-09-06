@@ -1,24 +1,14 @@
+#ifndef SERIAL_IMPL_H
+#define SERIAL_IMPL_H
+
+#include <sysinfo/sysinfo.h>
+
 #include <serial/serial_dllcfg.h>
 
 #include <string.h>
 #include <limits.h>
 
 #include <iostream>
-
-#define SERIAL_LITTLE_ENDIAN 1
-#define SERIAL_BIG_ENDIAN 2
-#define SERIAL_UNKNOWN_ENDIAN 3
-
-#define SERIAL_TWO_REP 1
-#define SERIAL_ONE_REP 2
-#define SERIAL_SMAG_REP 3
-#define SERIAL_UNKNOWN_REP 4
-
-#define SERIAL_CPFP32 @CPFP32@
-#define SERIAL_CPFP64 @CPFP64@
-
-#define SERIAL_ENDIAN SERIAL_@SERIAL_ENDIAN@_ENDIAN
-#define SERIAL_REP SERIAL_@SERIAL_REP@_REP
 
 
 CPP_EXTERNC_BEGIN
@@ -46,7 +36,7 @@ inline void serial__swap_8B(unsigned char *dst, const unsigned char *src)
 	dst[7] = src[0];
 }
 
-#if SERIAL_ENDIAN == SERIAL_BIG_ENDIAN
+#if SYSINFO_ENDIAN == SYSINFO_BIG_ENDIAN
 inline void serial__store_2B(unsigned char *dst, const unsigned char *src)
 { memcpy(dst, src, 2); }
 inline void serial__store_4B(unsigned char *dst, const unsigned char *src)
@@ -63,7 +53,7 @@ inline void serial__store_8B(unsigned char *dst, const unsigned char *src)
 #endif
 
 
-#define SERIAL_OPT (CHAR_BIT==8 && SERIAL_ENDIAN!=SERIAL_UNKNOWN_ENDIAN)
+#define SERIAL_OPT (CHAR_BIT==8 && SYSINFO_ENDIAN!=SYSINFO_UNKNOWN_ENDIAN)
 
 #if defined(UINT16_MAX) && SERIAL_OPT
 inline void serial__store_ui16(unsigned char *data, uint_least16_t value)
@@ -149,7 +139,7 @@ inline uint_least64_t serial__load_ui64(const unsigned char *data)
 }
 #endif
 
-#if SERIAL_REP == SERIAL_TWO_REP
+#if SYSINFO_IREP == SYSINFO_TWO_IREP
 //already two's complement
 
 inline void serial__store_i16(unsigned char *data, int_least16_t value)
@@ -221,7 +211,7 @@ inline int_least64_t serial__load_i64(const unsigned char *data)
 }
 #endif
 
-#if SERIAL_CPFP32
+#if SYSINFO_CPFP32
 inline void serial__store_fp32(unsigned char *data, float value)
 { serial__store_4B(data, (unsigned char*) &value); }
 inline float serial__load_fp32(const unsigned char *data)
@@ -232,7 +222,7 @@ inline float serial__load_fp32(const unsigned char *data)
 }
 #endif
 
-#if SERIAL_CPFP64
+#if SYSINFO_CPFP64
 inline void serial__store_fp64(unsigned char *data, double value)
 { serial__store_8B(data, (unsigned char*) &value); }
 inline double serial__load_fp64(const unsigned char *data)
@@ -244,3 +234,5 @@ inline double serial__load_fp64(const unsigned char *data)
 #endif
 
 CPP_EXTERNC_END
+
+#endif
