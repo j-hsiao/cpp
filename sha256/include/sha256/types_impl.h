@@ -1,11 +1,8 @@
-#define SHA256_BIG_ENDIAN 1
-#define SHA256_LITTLE_ENDIAN 2
-#define SHA256_MIXED_ENDIAN 3
+#ifndef SHA256_TYPES_IMPL_H
+#define SHA256_TYPES_IMPL_H
 
-#define SHA256_ENDIAN SHA256_@SHA256_ENDIAN@_ENDIAN
-
+#include <sysinfo/sysinfo.h>
 #include <string.h>
-
 
 size_t sha256__normalized_size(size_t numChars)
 {
@@ -88,8 +85,8 @@ unsigned char* sha256__unnormalize(
 #endif
 
 
-#if CHAR_BIT == 8 && defined(UINT32_MAX) && (SHA256_ENDIAN == SHA256_BIG_ENDIAN || SHA256_ENDIAN == SHA256_LITTLE_ENDIAN)
-#if SHA256_ENDIAN == SHA256_BIG_ENDIAN
+#if CHAR_BIT == 8 && defined(UINT32_MAX) && (SYSINFO_ENDIAN != SYSINFO_UNKNOWN_ENDIAN)
+#if SYSINFO_ENDIAN == SYSINFO_BIG_ENDIAN
 inline void sha256__load_words(sha256__Word *words, const sha256__Byte *normed, size_t numBytes)
 {
 	size_t tail = numBytes % sha256__Word_Bytes;
@@ -105,7 +102,7 @@ sha256__Byte sha256__get_byte(sha256__Word word, size_t num)
 inline void sha256__set_byte(sha256__Word *word, sha256__Byte val, size_t num)
 { ((sha256__Byte*)(word))[num] = val; }
 
-#elif SHA256_ENDIAN == SHA256_LITTLE_ENDIAN
+#elif SYSINFO_ENDIAN == SYSINFO_LITTLE_ENDIAN
 inline void sha256__load_words(
 	sha256__Word *words, const sha256__Byte *normed, size_t numChars)
 {
@@ -285,3 +282,5 @@ inline int sha256__from_hex(void *d, const char *buf, size_t nbytes)
 	}
 	return 0;
 }
+
+#endif

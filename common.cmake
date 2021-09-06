@@ -25,6 +25,11 @@
 #		use this instead of find_package to ensure that
 #		when installing, the dependencies are added as well
 #		(config.cmake.in is replaced with these commands)
+#	find_or_build_dep(depname, depsrc, find_package_remaining_args...)
+#		try find_export_package
+#		if not found, then build_dependency and find_package(depname REQUIRED)
+#		(second find_package is REQUIRED because it was just built so I know
+#		it exists)
 #	install_project(includes...)
 #		macro that installs project
 #		1. add CMAKE_CURRENT_SOURCE_DIR/include to target
@@ -46,7 +51,7 @@ set(MINGW "${isMingw}" CACHE STRING "is mingw")
 option(ENABLE_IPO "enable interprocedural optimization (lto)" OFF)
 #enabling ipo
 if (ENABLE_IPO)
-	if("${CMAKE_VERSION}" VERSION_GREATER 3.9)
+	if(CMAKE_VERSION VERSION_GREATER 3.9)
 		cmake_policy(GET CMP0069 cmpcheck)
 		if (NOT cmpcheck STREQUAL NEW)
 			cmake_policy(SET CMP0069 NEW)
@@ -110,7 +115,7 @@ if (NOT COMMAND configure_dll)
 		string(TOUPPER "${PROJECT_NAME}" PROJECT_NAME_UPPER)
 		option("${PROJECT_NAME_UPPER}_DEBUG" "debugging for ${PROJECT_NAME}" OFF)
 		message("${PROJECT_NAME} debugging: ${${PROJECT_NAME_UPPER}_DEBUG}")
-		if ("${${PROJECT_NAME_UPPER}_DEBUG}")
+		if (${PROJECT_NAME_UPPER}_DEBUG)
 			target_compile_definitions(
 				${PROJECT_NAME} PRIVATE "${PROJECT_NAME_UPPER}_DEBUG=1")
 		else()
@@ -139,7 +144,7 @@ if (NOT COMMAND configure_dll)
 	endfunction()
 
 	# use this to find_package
-	macro(find_export_package ...)
+	macro(find_export_package)
 		find_package(${ARGV})
 		string(REPLACE ";" " " argstr "${ARGV}")
 		
@@ -149,9 +154,18 @@ if (NOT COMMAND configure_dll)
 		# add args to find_package_commands for the config file
 	endmacro()
 
+	macro(find_or_build_dep dep depsrc)
+		find_export_package("${dep}" ${ARGN})
+		if (NOT ${dep}_FOUND)
+			message("${dep} was not found, building...")
+			build_dependency("${dep}" "${depsrc}")
+			find_package("${dep}" ${ARGN} REQUIRED)
+		endif()
+	endmacro()
+
 	# install_project to install current project
 	# (excluding header files)
-	macro(install_project ...)
+	macro(install_project)
 		get_target_property(libtype ${PROJECT_NAME} TYPE)
 		if (libtype STREQUAL "INTERFACE_LIBRARY")
 			target_include_directories(

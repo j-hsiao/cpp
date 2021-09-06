@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 macro(check_err)
-	if (NOT "${ecode}" EQUAL 0)
+	if (NOT ecode EQUAL 0)
 		message(FATAL_ERROR "error: ${err}")
 	endif()
 endmacro()
@@ -52,12 +52,13 @@ foreach(command IN ITEMS "ENDIAN" "INTREP" "CPFP32" "CPFP64")
 		COMMAND
 			"${CMAKE_CURRENT_BINARY_DIR}/check/bin/sysinfo"
 			"${command}"
-		OUTPUT_VARIABLE "SYSINFO_${command}"
+		OUTPUT_VARIABLE "SYSINFO_${command}_"
 		ERROR_VARIABLE err
 		OUTPUT_STRIP_TRAILING_WHITESPACE
 		RESULT_VARIABLE ecode)
 	check_err()
-	message("${command}: ${SYSINFO_${command}}")
+	message("${command}: ${SYSINFO_${command}_}")
+	set(SYSINFO_${command} "${SYSINFO_${command}_}" CACHE STRING "${command}")
 endforeach()
 
 configure_file(
