@@ -2,6 +2,7 @@
 #define AES_TYPES_IMPL_H
 #include <sha256/types.h>
 
+#include <sysinfo/sysinfo.h>
 #include <algorithm>
 #include <climits>
 #include <stdexcept>
@@ -51,12 +52,12 @@ namespace aes
 	inline void set_state_byte(aes__Word *w, aes__Byte val, size_t num)
 	{ reinterpret_cast<aes__Byte*>(w)[num] = val; }
 
-#if SHA256_ENDIAN == SHA256_BIG_ENDIAN
+#if SYSINFO_ENDIAN == SYSINFO_BIG_ENDIAN
 	inline aes__Word lrot(aes__Word w, size_t numbits)
 	{ return (w << numbits) | (w >> (aes__Word_Bits - numbits)); }
 	inline aes__Word rrot(aes__Word w, size_t numbits);
 	{ return (w >> numbits) | (w << (aes__Word_Bits - numbits)); }
-#elif SHA256_ENDIAN == SHA256_LITTLE_ENDIAN
+#elif SYSINFO_ENDIAN == SYSINFO_LITTLE_ENDIAN
 	inline aes__Word lrot(aes__Word w, size_t numbits)
 	{ return (w >> numbits) | (w << (aes__Word_Bits - numbits)); }
 	inline aes__Word rrot(aes__Word w, size_t numbits)

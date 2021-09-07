@@ -18,16 +18,12 @@ add_library(
 )
 target_include_directories(aes PRIVATE "${CMAKE_CURRENT_LIST_DIR}/../tlog")
 
-foreach(dep sha256 os)
-	find_package(${dep} QUIET)
-	if (NOT ${dep}_FOUND)
-		build_dependency(${dep} "${CMAKE_CURRENT_LIST_DIR}/../${dep}")
-	endif()
-	find_export_package(${dep} REQUIRED)
+foreach(dep sha256 os sysinfo)
+	find_or_build_dep(${dep} "${CMAKE_CURRENT_LIST_DIR}/../${dep}")
 endforeach()
 target_link_libraries(
 	aes
-	PUBLIC sha256::sha256
+	PUBLIC sha256::sha256 sysinfo::sysinfo
 	PRIVATE os::os)
 
 #------------------------------
@@ -88,11 +84,7 @@ if (AES_USE_SSE)
 	target_compile_definitions(aes PRIVATE AES_USE_SSE=1)
 endif()
 if (AES_USE_AESNI OR AES_USE_SSE)
-	find_package(cpuinfo QUIET)
-	if (NOT cpuinfo_FOUND)
-		build_dependency(cpuinfo "${CMAKE_CURRENT_LIST_DIR}/../cpuinfo")
-	endif()
-	find_export_package(cpuinfo REQUIRED)
+	find_or_build_dep(cpuinfo "${CMAKE_CURRENT_LIST_DIR}/../cpuinfo")
 	target_link_libraries(aes PRIVATE cpuinfo::cpuinfo)
 endif()
 

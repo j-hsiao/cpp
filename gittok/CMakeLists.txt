@@ -7,11 +7,7 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 foreach(dep os argparse sha256 aes)
-	find_package(${dep} QUIET)
-	if (NOT ${dep}_FOUND)
-		build_dependency(${dep} "${CMAKE_CURRENT_LIST_DIR}/../${dep}")
-	endif()
-	find_export_package(${dep} REQUIRED)
+	find_or_build_dep("${dep}" "${CMAKE_CURRENT_LIST_DIR}/../${dep}")
 endforeach()
 
 
