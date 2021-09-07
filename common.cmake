@@ -47,10 +47,6 @@ set(CMAKE_CONFIGURATION_TYPES "Release")
 
 string(REGEX MATCH ".*/[^/]*mingw[^/]*" isMingw "${CMAKE_CXX_COMPILER}")
 set(MINGW "${isMingw}" CACHE STRING "is mingw")
-option(MINGW_STATIC "Add mingw static options?" ON)
-if (MINGW AND MINGW_STATIC)
-	add_compile_options("-static-libstdc++" "-static-libgcc" "-static")
-endif()
 
 option(ENABLE_IPO "enable interprocedural optimization (lto)" OFF)
 #enabling ipo
