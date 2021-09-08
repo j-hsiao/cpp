@@ -75,6 +75,7 @@ namespace
 				cpuinfo::has("sse2")
 				&& cpuinfo::has("ssse3")
 				&& cpuinfo::has("avx2")
+				&& cpuinfo::has("avx512_vbmi2")
 				&& checks.count(AESForce))
 			{
 				Log() << "dispatch to sse2/ssse3/avx2" << std::endl;
