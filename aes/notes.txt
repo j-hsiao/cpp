@@ -1,0 +1,73 @@
+cygwin build
+home comp
+$ AES_FORCE=sse ./aes_test
+aes128
+plain: hello world
+encrypted: 71C7BB5D8D07E6D5E180D0804543DF3A
+plain: goodbye world
+encrypted: FE6822969D2ACB5D8E61D68FD5E6C6F3
+plain: Peter Piper picked a pickled plum or something
+encrypted: C9BA8BC098CE71DDD6B9ADD68A990A825C7F7ED97C2770FEEF3ACC59134A36BE2F0289E3B47CFC322429B8EADAF2D6C7
+64 MB encrypt ecb: wall: 0.446155, clock: 0.453
+64 MB decrypt ecb: wall: 0.471452, clock: 0.469
+64 MB encrypt cbc: wall: 0.488341, clock: 0.484
+64 MB decrypt cbc: wall: 0.463338, clock: 0.469
+aes192
+plain: hello world
+encrypted: 61A2EB079054BC0BDCC2212198665299
+plain: goodbye world
+encrypted: 87706560949FE280B612965017BD0502
+plain: Peter Piper picked a pickled plum or something
+encrypted: EDBF5DECBBCCA0DF8CD22444380887A72DB47E988DBB37B992577A0D6FE14464541E506F716D67B7323244D6C9B7AE9A
+64 MB encrypt ecb: wall: 0.520978, clock: 0.516
+64 MB decrypt ecb: wall: 0.541812, clock: 0.532
+64 MB encrypt cbc: wall: 0.570334, clock: 0.562
+64 MB decrypt cbc: wall: 0.545765, clock: 0.531
+aes256
+plain: hello world
+encrypted: 2A2779F53C349A1C2754E17BE3B1FE5D
+plain: goodbye world
+encrypted: 70B799D9BF59E84ACED27069BC00D255
+plain: Peter Piper picked a pickled plum or something
+encrypted: EB0A6DFA1B4E21A5857F96D5C9DA2A667AD930405DC1CB84776993FC95A49F6F47BC33D37BB1069533E042A72EA25E63
+64 MB encrypt ecb: wall: 0.596669, clock: 0.593
+64 MB decrypt ecb: wall: 0.619526, clock: 0.625
+64 MB encrypt cbc: wall: 0.644706, clock: 0.642
+64 MB decrypt cbc: wall: 0.623258, clock: 0.624
+pass
+
+$ AES_FORCE=plain ./aes_test
+aes128
+plain: hello world
+encrypted: 71C7BB5D8D07E6D5E180D0804543DF3A
+plain: goodbye world
+encrypted: FE6822969D2ACB5D8E61D68FD5E6C6F3
+plain: Peter Piper picked a pickled plum or something
+encrypted: C9BA8BC098CE71DDD6B9ADD68A990A825C7F7ED97C2770FEEF3ACC59134A36BE2F0289E3B47CFC322429B8EADAF2D6C7
+64 MB encrypt ecb: wall: 0.446196, clock: 0.453
+64 MB decrypt ecb: wall: 0.466663, clock: 0.468
+64 MB encrypt cbc: wall: 0.492129, clock: 0.485
+64 MB decrypt cbc: wall: 0.471035, clock: 0.485
+aes192
+plain: hello world
+encrypted: 61A2EB079054BC0BDCC2212198665299
+plain: goodbye world
+encrypted: 87706560949FE280B612965017BD0502
+plain: Peter Piper picked a pickled plum or something
+encrypted: EDBF5DECBBCCA0DF8CD22444380887A72DB47E988DBB37B992577A0D6FE14464541E506F716D67B7323244D6C9B7AE9A
+64 MB encrypt ecb: wall: 0.523128, clock: 0.515
+64 MB decrypt ecb: wall: 0.540805, clock: 0.547
+64 MB encrypt cbc: wall: 0.568161, clock: 0.563
+64 MB decrypt cbc: wall: 0.54615, clock: 0.547
+aes256
+plain: hello world
+encrypted: 2A2779F53C349A1C2754E17BE3B1FE5D
+plain: goodbye world
+encrypted: 70B799D9BF59E84ACED27069BC00D255
+plain: Peter Piper picked a pickled plum or something
+encrypted: EB0A6DFA1B4E21A5857F96D5C9DA2A667AD930405DC1CB84776993FC95A49F6F47BC33D37BB1069533E042A72EA25E63
+64 MB encrypt ecb: wall: 0.600619, clock: 0.594
+64 MB decrypt ecb: wall: 0.621147, clock: 0.626
+64 MB encrypt cbc: wall: 0.638858, clock: 0.64
+64 MB decrypt cbc: wall: 0.61713, clock: 0.609
+pass
