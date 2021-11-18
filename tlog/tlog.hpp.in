@@ -1,0 +1,28 @@
+#ifndef @TLOG_NS@_TLOG_HPP
+#define @TLOG_NS@_TLOG_HPP
+
+#if defined(@TLOG_DEBUG@) && @TLOG_DEBUG@
+#include <iostream>
+#endif
+
+// Compile-time addition/removal of logging statements (via optimization)
+namespace @TLOG_NS@
+{
+	namespace 
+	{
+		static const char endl = '\n';
+		struct Cerr
+		{
+			template<class T>
+			const Cerr& operator<<(const T &thing) const
+			{
+#if defined(@TLOG_DEBUG@) && @TLOG_DEBUG@
+				std::cerr << thing;
+#endif
+				return *this;
+			}
+		};
+		static const Cerr cerr;
+	}
+}
+#endif

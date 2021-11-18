@@ -1,0 +1,152 @@
+/* Basic naive implementation, used for checking other implementations
+ *
+ * shift rows:
+ *	  0   4   8  12 ->   0   4   8  12
+ *	  1   5   9  13 ->   5   9  13   1
+ *	  2   6  10  14 ->  10  14   2   6
+ *	  3   7  11  15 ->  15   3   7  11
+ *
+ *	ishift rows:
+ *	  0   4   8  12 ->   0   4   8  12
+ *	  1   5   9  13 ->  13   1   5   9
+ *	  2   6  10  14 ->  10  14   2   6
+ *	  3   7  11  15 ->   7  11  15   3
+ *
+ *	mixcols:
+ *	[o0] = [2 3 1 1] [w0]
+ *	[o1] = [1 2 3 1] [w1]
+ *	[o2] = [1 1 2 3] [w2]
+ *	[o3] = [3 1 1 2] [w3]
+ *
+ *	imixcols:
+ *	[o0] = [14 11 13  9] [w0]
+ *	[o1] = [ 9 14 11 13] [w1]
+ *	[o2] = [13  9 14 11] [w2]
+ *	[o3] = [11 13  9 14] [w3]
+ *
+ *	w0*col0 ^ w1*co1 ^ w2*col2 ^ w3*col3
+ *
+ *	algorithm:
+ *		add key
+ *		nroundkeys - 2 rounds of:
+ *			sub bytes
+ *			shift rows
+ *			mixcols
+ *			add roundkey
+ *		sub bytes
+ *		shiftrows
+ *		add roundkey
+ *
+ *	inverse:
+ *		add key
+ *		nroundkeys - 2 rounds of:
+ *			ishift rows
+ *			isub bytes
+ *			add roundkey
+ *			imixcols
+ *		ishift rows
+ *		isub bytes
+ *		add key
+ *
+ *	effective inverse:
+ *		add key
+ *		nroundkeys - 2 rounds of:
+ *			ishift rows
+ *			isub bytes
+ *			imixcols
+ *			add roundkey (imixcolled encryption keys in reverse order)
+ *		ishift rows
+ *		isub bytes
+ *		add key
+ *
+ *	(a+b)M = aM + b
+ *
+ */
+#ifndef AES_IMPL_PLAIN_HPP
+#define AES_IMPL_PLAIN_HPP
+
+#cmakedefine01 AES_USE_PLAIN
+#if AES_USE_PLAIN
+
+#include "aes/defs.hpp"
+#include "aes/aesalg.hpp"
+
+#include <cstdint>
+#include <cstring>
+
+namespace aes
+{
+	namespace plain
+	{
+		struct oword { unsigned char data[State_Bytes]; };
+		struct wword
+		{
+			unsigned char *data;
+			wword(unsigned char *d): data(d) {}
+			wword(oword &&o): data(o.data) {}
+
+			wword& operator=(const oword &o) &&
+			{ std::memcpy(data, o.data, Word_Bytes); return *this; }
+			operator unsigned char* () { return data; }
+			operator const unsigned char* () const { return data; }
+		};
+		oword operator^(const wword &a, const wword &b);
+
+		struct State
+		{
+			unsigned char *data;
+			State() = default;
+			State(unsigned char *d): data(d) {}
+
+			State& operator=(const unsigned char *o) &&
+			{ std::memcpy(data, o, State_Bytes); return *this; }
+
+			State& operator^=(const unsigned char *d);
+			State& operator^=(const State &o)
+			{ return *this ^= static_cast<const unsigned char*>(o.data); }
+
+			void operator>>(unsigned char *dst) const {}
+			void init(unsigned char *dst, const unsigned char *src);
+
+			void imix();
+			void aes_enc(const unsigned char *key);
+			void aes_enclast(const unsigned char *key);
+			void aes_dec(const unsigned char *key);
+			void aes_declast(const unsigned char *key);
+		};
+		struct Keys
+		{
+			const Version &version;
+			unsigned char data[Max_Rounds*State_Bytes];
+
+			Keys(const Version &v);
+			Keys(const void *key, const Version &v);
+
+			wword word(std::size_t i)
+			{ return data + i*Word_Bytes; }
+			static oword rcon(std::size_t i)
+			{ return {aes::rcon(i), 0, 0, 0}; }
+			oword rotsub(std::size_t i) const;
+			oword sub(std::size_t i) const;
+
+			State state(std::size_t i)
+			{ return {data + i*State_Bytes}; }
+			const unsigned char* state(std::size_t i) const
+			{ return data + i*State_Bytes; }
+
+			void store(void *dst)
+			{ std::memcpy(dst, data, version.Round_Keys*State_Bytes); }
+
+			Keys reverse() const;
+		};
+	}
+	typedef Impl<plain::Keys, plain::State> Impl_Plain;
+}
+#else
+
+#include "aes/raw.hpp"
+namespace aes
+{ typedef @AES_FALLBACK@ Impl_Plain; }
+
+#endif
+#endif

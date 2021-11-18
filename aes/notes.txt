@@ -1,0 +1,552 @@
+cygwin build
+home comp
+$ AES_FORCE=sse ./aes_test
+aes128
+plain: hello world
+encrypted: 71C7BB5D8D07E6D5E180D0804543DF3A
+plain: goodbye world
+encrypted: FE6822969D2ACB5D8E61D68FD5E6C6F3
+plain: Peter Piper picked a pickled plum or something
+encrypted: C9BA8BC098CE71DDD6B9ADD68A990A825C7F7ED97C2770FEEF3ACC59134A36BE2F0289E3B47CFC322429B8EADAF2D6C7
+64 MB encrypt ecb: wall: 0.446155, clock: 0.453
+64 MB decrypt ecb: wall: 0.471452, clock: 0.469
+64 MB encrypt cbc: wall: 0.488341, clock: 0.484
+64 MB decrypt cbc: wall: 0.463338, clock: 0.469
+aes192
+plain: hello world
+encrypted: 61A2EB079054BC0BDCC2212198665299
+plain: goodbye world
+encrypted: 87706560949FE280B612965017BD0502
+plain: Peter Piper picked a pickled plum or something
+encrypted: EDBF5DECBBCCA0DF8CD22444380887A72DB47E988DBB37B992577A0D6FE14464541E506F716D67B7323244D6C9B7AE9A
+64 MB encrypt ecb: wall: 0.520978, clock: 0.516
+64 MB decrypt ecb: wall: 0.541812, clock: 0.532
+64 MB encrypt cbc: wall: 0.570334, clock: 0.562
+64 MB decrypt cbc: wall: 0.545765, clock: 0.531
+aes256
+plain: hello world
+encrypted: 2A2779F53C349A1C2754E17BE3B1FE5D
+plain: goodbye world
+encrypted: 70B799D9BF59E84ACED27069BC00D255
+plain: Peter Piper picked a pickled plum or something
+encrypted: EB0A6DFA1B4E21A5857F96D5C9DA2A667AD930405DC1CB84776993FC95A49F6F47BC33D37BB1069533E042A72EA25E63
+64 MB encrypt ecb: wall: 0.596669, clock: 0.593
+64 MB decrypt ecb: wall: 0.619526, clock: 0.625
+64 MB encrypt cbc: wall: 0.644706, clock: 0.642
+64 MB decrypt cbc: wall: 0.623258, clock: 0.624
+pass
+
+$ AES_FORCE=plain ./aes_test
+aes128
+plain: hello world
+encrypted: 71C7BB5D8D07E6D5E180D0804543DF3A
+plain: goodbye world
+encrypted: FE6822969D2ACB5D8E61D68FD5E6C6F3
+plain: Peter Piper picked a pickled plum or something
+encrypted: C9BA8BC098CE71DDD6B9ADD68A990A825C7F7ED97C2770FEEF3ACC59134A36BE2F0289E3B47CFC322429B8EADAF2D6C7
+64 MB encrypt ecb: wall: 0.446196, clock: 0.453
+64 MB decrypt ecb: wall: 0.466663, clock: 0.468
+64 MB encrypt cbc: wall: 0.492129, clock: 0.485
+64 MB decrypt cbc: wall: 0.471035, clock: 0.485
+aes192
+plain: hello world
+encrypted: 61A2EB079054BC0BDCC2212198665299
+plain: goodbye world
+encrypted: 87706560949FE280B612965017BD0502
+plain: Peter Piper picked a pickled plum or something
+encrypted: EDBF5DECBBCCA0DF8CD22444380887A72DB47E988DBB37B992577A0D6FE14464541E506F716D67B7323244D6C9B7AE9A
+64 MB encrypt ecb: wall: 0.523128, clock: 0.515
+64 MB decrypt ecb: wall: 0.540805, clock: 0.547
+64 MB encrypt cbc: wall: 0.568161, clock: 0.563
+64 MB decrypt cbc: wall: 0.54615, clock: 0.547
+aes256
+plain: hello world
+encrypted: 2A2779F53C349A1C2754E17BE3B1FE5D
+plain: goodbye world
+encrypted: 70B799D9BF59E84ACED27069BC00D255
+plain: Peter Piper picked a pickled plum or something
+encrypted: EB0A6DFA1B4E21A5857F96D5C9DA2A667AD930405DC1CB84776993FC95A49F6F47BC33D37BB1069533E042A72EA25E63
+64 MB encrypt ecb: wall: 0.600619, clock: 0.594
+64 MB decrypt ecb: wall: 0.621147, clock: 0.626
+64 MB encrypt cbc: wall: 0.638858, clock: 0.64
+64 MB decrypt cbc: wall: 0.61713, clock: 0.609
+pass
+
+
+PRED old old impl
+aes128
+64 MB encrypt ecb: wall: 0.297094, clock: 0.297098
+64 MB decrypt ecb: wall: 0.273506, clock: 0.273512
+64 MB encrypt cbc: wall: 0.373731, clock: 0.373714
+64 MB decrypt cbc: wall: 0.273417, clock: 0.273423
+aes192
+64 MB encrypt ecb: wall: 0.338992, clock: 0.338998
+64 MB decrypt ecb: wall: 0.312954, clock: 0.312956
+64 MB encrypt cbc: wall: 0.418264, clock: 0.41827
+64 MB decrypt cbc: wall: 0.317183, clock: 0.317189
+aes256
+64 MB encrypt ecb: wall: 0.383829, clock: 0.383812
+64 MB decrypt ecb: wall: 0.356388, clock: 0.356395
+64 MB encrypt cbc: wall: 0.468757, clock: 0.468759
+64 MB decrypt cbc: wall: 0.361267, clock: 0.361274
+
+
+
+
+
+
+rawimpl notes:
+	bytefirst: 0th bytes, then 1st, then 2nd, 3rd etc (lut has better spatial locality?)
+		otherwise, 0th word, then 1st, second, third
+	PASSTMP:
+		when encrypting, tmp is a buffer passed to the function
+		otherwise, tmp is an array on the stack
+		stack is supposed to be "free" allocation, maybe it has something
+		to do with caching?
+		on pred, ECB is much faster, but CBC is much slower than old old impl, I wonder why
+
+home pc:
+	ui32:
+		ecb passtmp bytefirst nointo
+		cbc nobytefirst into
+	uil32:
+		passtmp bytefirst into
+pred:
+	ui32:   if passtmp, then into = best
+	        if nopasstmp, then into = ~no change
+		nopasstmp is slightly better in cbc but passtmp has best ecb timing (nointo nobytefirst)
+	uil32: into, | passtmp bytefirst = nodiff
+laptop best = passtmp, nobytefirst
+	ui32: passtmp nobytefirst nointo
+	uil32:
+		passtmp into | bytefirst = nodiff
+
+home pc timings:
+	UI32
+		PASSTMP
+			BYTEFIRST
+				INTO                                                    NOINTO
+				timing aes128                                           timing aes128
+				64 MB encrypt ecb: wall: 0.443092, clock: 0.422         64 MB encrypt ecb: wall: 0.321845, clock: 0.297
+				64 MB decrypt ecb: wall: 0.443261, clock: 0.437         64 MB decrypt ecb: wall: 0.30482, clock: 0.298
+				64 MB encrypt cbc: wall: 0.400061, clock: 0.407         64 MB encrypt cbc: wall: 0.668284, clock: 0.671
+				64 MB decrypt cbc: wall: 0.475258, clock: 0.452         64 MB decrypt cbc: wall: 0.665391, clock: 0.672
+				timing aes192                                           timing aes192
+				64 MB encrypt ecb: wall: 0.489922, clock: 0.484         64 MB encrypt ecb: wall: 0.38972, clock: 0.39
+				64 MB decrypt ecb: wall: 0.522802, clock: 0.531         64 MB decrypt ecb: wall: 0.38484, clock: 0.391
+				64 MB encrypt cbc: wall: 0.470767, clock: 0.454         64 MB encrypt cbc: wall: 0.805972, clock: 0.813
+				64 MB decrypt cbc: wall: 0.589598, clock: 0.578         64 MB decrypt cbc: wall: 0.841291, clock: 0.812
+				timing aes256                                           timing aes256
+				64 MB encrypt ecb: wall: 0.705898, clock: 0.593         64 MB encrypt ecb: wall: 0.423456, clock: 0.422
+				64 MB decrypt ecb: wall: 0.59169, clock: 0.579          64 MB decrypt ecb: wall: 0.386142, clock: 0.375
+				64 MB encrypt cbc: wall: 0.532506, clock: 0.531         64 MB encrypt cbc: wall: 0.921422, clock: 0.922
+				64 MB decrypt cbc: wall: 0.620119, clock: 0.594         64 MB decrypt cbc: wall: 1.09569, clock: 0.953
+			NOBYTEFIRST
+				INTO                                                    NOINTO
+				timing aes128                                           timing aes128
+				64 MB encrypt ecb: wall: 0.39762, clock: 0.406          64 MB encrypt ecb: wall: 0.622406, clock: 0.625
+				64 MB decrypt ecb: wall: 0.41344, clock: 0.422          64 MB decrypt ecb: wall: 0.653229, clock: 0.656
+				64 MB encrypt cbc: wall: 0.376607, clock: 0.375         64 MB encrypt cbc: wall: 0.629924, clock: 0.625
+				64 MB decrypt cbc: wall: 0.419883, clock: 0.422         64 MB decrypt cbc: wall: 0.630048, clock: 0.625
+				timing aes192                                           timing aes192
+				64 MB encrypt ecb: wall: 0.454424, clock: 0.453         64 MB encrypt ecb: wall: 0.716449, clock: 0.719
+				64 MB decrypt ecb: wall: 0.513423, clock: 0.499         64 MB decrypt ecb: wall: 0.704273, clock: 0.703
+				64 MB encrypt cbc: wall: 0.449485, clock: 0.437         64 MB encrypt cbc: wall: 0.752133, clock: 0.75
+				64 MB decrypt cbc: wall: 0.495175, clock: 0.485         64 MB decrypt cbc: wall: 0.795624, clock: 0.749
+				timing aes256                                           timing aes256
+				64 MB encrypt ecb: wall: 0.523524, clock: 0.516         64 MB encrypt ecb: wall: 0.839492, clock: 0.828
+				64 MB decrypt ecb: wall: 0.556276, clock: 0.547         64 MB decrypt ecb: wall: 0.856499, clock: 0.844
+				64 MB encrypt cbc: wall: 0.489462, clock: 0.5           64 MB encrypt cbc: wall: 0.839641, clock: 0.828
+				64 MB decrypt cbc: wall: 0.565155, clock: 0.563         64 MB decrypt cbc: wall: 0.850402, clock: 0.844
+		NO PASSTMP
+			BYTEFIRST
+				INTO                                                    NOINTO
+				timing aes128                                           timing aes128
+				64 MB encrypt ecb: wall: 0.390947, clock: 0.391         64 MB encrypt ecb: wall: 0.368615, clock: 0.36
+				64 MB decrypt ecb: wall: 0.422838, clock: 0.437         64 MB decrypt ecb: wall: 0.425467, clock: 0.421
+				64 MB encrypt cbc: wall: 0.373671, clock: 0.375         64 MB encrypt cbc: wall: 0.448491, clock: 0.454
+				64 MB decrypt cbc: wall: 0.432561, clock: 0.438         64 MB decrypt cbc: wall: 0.446525, clock: 0.438
+				timing aes192                                           timing aes192
+				64 MB encrypt ecb: wall: 0.458944, clock: 0.468         64 MB encrypt ecb: wall: 0.411338, clock: 0.406
+				64 MB decrypt ecb: wall: 0.538165, clock: 0.532         64 MB decrypt ecb: wall: 0.499466, clock: 0.5
+				64 MB encrypt cbc: wall: 0.483571, clock: 0.469         64 MB encrypt cbc: wall: 0.534552, clock: 0.547
+				64 MB decrypt cbc: wall: 0.525267, clock: 0.516         64 MB decrypt cbc: wall: 0.513611, clock: 0.516
+				timing aes256                                           timing aes256
+				64 MB encrypt ecb: wall: 0.513227, clock: 0.516         64 MB encrypt ecb: wall: 0.474419, clock: 0.485
+				64 MB decrypt ecb: wall: 0.580607, clock: 0.578         64 MB decrypt ecb: wall: 0.572485, clock: 0.563
+				64 MB encrypt cbc: wall: 0.494915, clock: 0.5           64 MB encrypt cbc: wall: 0.620231, clock: 0.625
+				64 MB decrypt cbc: wall: 0.586227, clock: 0.594         64 MB decrypt cbc: wall: 0.596294, clock: 0.608
+			NOBYTEFIRST
+				INTO                                                    NOINTO
+				timing aes128                                           timing aes128
+				64 MB encrypt ecb: wall: 0.396877, clock: 0.39          64 MB encrypt ecb: wall: 0.361888, clock: 0.343
+				64 MB decrypt ecb: wall: 0.426234, clock: 0.423         64 MB decrypt ecb: wall: 0.435678, clock: 0.438
+				64 MB encrypt cbc: wall: 0.380075, clock: 0.374         64 MB encrypt cbc: wall: 0.473506, clock: 0.468
+				64 MB decrypt cbc: wall: 0.452273, clock: 0.422         64 MB decrypt cbc: wall: 0.437053, clock: 0.438
+				timing aes192                                           timing aes192
+				64 MB encrypt ecb: wall: 0.498197, clock: 0.484         64 MB encrypt ecb: wall: 0.414479, clock: 0.406
+				64 MB decrypt ecb: wall: 0.525966, clock: 0.485         64 MB decrypt ecb: wall: 0.504393, clock: 0.5
+				64 MB encrypt cbc: wall: 0.433677, clock: 0.438         64 MB encrypt cbc: wall: 0.526956, clock: 0.515
+				64 MB decrypt cbc: wall: 0.510928, clock: 0.499         64 MB decrypt cbc: wall: 0.533638, clock: 0.531
+				timing aes256                                           timing aes256
+				64 MB encrypt ecb: wall: 0.518648, clock: 0.501         64 MB encrypt ecb: wall: 0.482637, clock: 0.484
+				64 MB decrypt ecb: wall: 0.575229, clock: 0.562         64 MB decrypt ecb: wall: 0.584286, clock: 0.594
+				64 MB encrypt cbc: wall: 0.491799, clock: 0.484         64 MB encrypt cbc: wall: 0.647227, clock: 0.641
+				64 MB decrypt cbc: wall: 0.584825, clock: 0.594         64 MB decrypt cbc: wall: 0.630417, clock: 0.594
+	UIL32
+		PASSTMP
+			BYTEFIRST
+				INTO                                                    NOINTO
+				timing aes128                                           timing aes128
+				64 MB encrypt ecb: wall: 0.354388, clock: 0.328         64 MB encrypt ecb: wall: 0.363947, clock: 0.375
+				64 MB decrypt ecb: wall: 0.332159, clock: 0.329         64 MB decrypt ecb: wall: 0.430481, clock: 0.422
+				64 MB encrypt cbc: wall: 0.366438, clock: 0.359         64 MB encrypt cbc: wall: 0.488227, clock: 0.484
+				64 MB decrypt cbc: wall: 0.336021, clock: 0.344         64 MB decrypt cbc: wall: 0.458441, clock: 0.438
+				timing aes192                                           timing aes192
+				64 MB encrypt ecb: wall: 0.404297, clock: 0.39          64 MB encrypt ecb: wall: 0.429744, clock: 0.422
+				64 MB decrypt ecb: wall: 0.362083, clock: 0.328         64 MB decrypt ecb: wall: 0.482594, clock: 0.484
+				64 MB encrypt cbc: wall: 0.421022, clock: 0.421         64 MB encrypt cbc: wall: 0.557172, clock: 0.547
+				64 MB decrypt cbc: wall: 0.365961, clock: 0.36          64 MB decrypt cbc: wall: 0.534389, clock: 0.531
+				timing aes256                                           timing aes256
+				64 MB encrypt ecb: wall: 0.470857, clock: 0.453         64 MB encrypt ecb: wall: 0.471836, clock: 0.468
+				64 MB decrypt ecb: wall: 0.414937, clock: 0.391         64 MB decrypt ecb: wall: 0.562295, clock: 0.563
+				64 MB encrypt cbc: wall: 0.456485, clock: 0.453         64 MB encrypt cbc: wall: 0.64363, clock: 0.641
+				64 MB decrypt cbc: wall: 0.419736, clock: 0.422         64 MB decrypt cbc: wall: 0.637479, clock: 0.625
+			NOBYTEFIRST
+				INTO                                                    NOINTO
+				timing aes128                                           timing aes128
+				64 MB encrypt ecb: wall: 0.618923, clock: 0.625         64 MB encrypt ecb: wall: 0.622406, clock: 0.625
+				64 MB decrypt ecb: wall: 0.627394, clock: 0.625         64 MB decrypt ecb: wall: 0.653229, clock: 0.656
+				64 MB encrypt cbc: wall: 0.622954, clock: 0.625         64 MB encrypt cbc: wall: 0.629924, clock: 0.625
+				64 MB decrypt cbc: wall: 0.620056, clock: 0.609         64 MB decrypt cbc: wall: 0.630048, clock: 0.625
+				timing aes192                                           timing aes192
+				64 MB encrypt ecb: wall: 0.731222, clock: 0.734         64 MB encrypt ecb: wall: 0.716449, clock: 0.719
+				64 MB decrypt ecb: wall: 0.731767, clock: 0.719         64 MB decrypt ecb: wall: 0.704273, clock: 0.703
+				64 MB encrypt cbc: wall: 0.730561, clock: 0.735         64 MB encrypt cbc: wall: 0.752133, clock: 0.75
+				64 MB decrypt cbc: wall: 0.726614, clock: 0.718         64 MB decrypt cbc: wall: 0.795624, clock: 0.749
+				timing aes256                                           timing aes256
+				64 MB encrypt ecb: wall: 0.83514, clock: 0.797          64 MB encrypt ecb: wall: 0.839492, clock: 0.828
+				64 MB decrypt ecb: wall: 0.855103, clock: 0.844         64 MB decrypt ecb: wall: 0.856499, clock: 0.844
+				64 MB encrypt cbc: wall: 0.837676, clock: 0.828         64 MB encrypt cbc: wall: 0.839641, clock: 0.828
+				64 MB decrypt cbc: wall: 0.880894, clock: 0.859         64 MB decrypt cbc: wall: 0.850402, clock: 0.844
+		NO PASSTMP
+			BYTEFIRST
+				INTO                                                    NOINTO
+				timing aes128                                           timing aes128
+				64 MB encrypt ecb: wall: 0.451576, clock: 0.437         64 MB encrypt ecb: wall: 0.459042, clock: 0.437
+				64 MB decrypt ecb: wall: 0.336329, clock: 0.329         64 MB decrypt ecb: wall: 0.364243, clock: 0.36
+				64 MB encrypt cbc: wall: 0.46054, clock: 0.468          64 MB encrypt cbc: wall: 0.487063, clock: 0.468
+				64 MB decrypt cbc: wall: 0.449426, clock: 0.454         64 MB decrypt cbc: wall: 0.467997, clock: 0.453
+				timing aes192                                           timing aes192
+				64 MB encrypt ecb: wall: 0.524479, clock: 0.515         64 MB encrypt ecb: wall: 0.531576, clock: 0.516
+				64 MB decrypt ecb: wall: 0.380412, clock: 0.39          64 MB decrypt ecb: wall: 0.392092, clock: 0.39
+				64 MB encrypt cbc: wall: 0.536766, clock: 0.531         64 MB encrypt cbc: wall: 0.551939, clock: 0.547
+				64 MB decrypt cbc: wall: 0.511366, clock: 0.517         64 MB decrypt cbc: wall: 0.532134, clock: 0.531
+				timing aes256                                           timing aes256
+				64 MB encrypt ecb: wall: 0.609317, clock: 0.609         64 MB encrypt ecb: wall: 0.597452, clock: 0.594
+				64 MB decrypt ecb: wall: 0.435092, clock: 0.438         64 MB decrypt ecb: wall: 0.430453, clock: 0.422
+				64 MB encrypt cbc: wall: 0.617472, clock: 0.593         64 MB encrypt cbc: wall: 0.614233, clock: 0.625
+				64 MB decrypt cbc: wall: 0.623398, clock: 0.61          64 MB decrypt cbc: wall: 0.616339, clock: 0.609
+			NOBYTEFIRST
+				INTO                                                    NOINTO
+				timing aes128                                           timing aes128
+				64 MB encrypt ecb: wall: 0.445915, clock: 0.453         64 MB encrypt ecb: wall: 0.462975, clock: 0.469
+				64 MB decrypt ecb: wall: 0.334785, clock: 0.343         64 MB decrypt ecb: wall: 0.359516, clock: 0.359
+				64 MB encrypt cbc: wall: 0.464529, clock: 0.454         64 MB encrypt cbc: wall: 0.47606, clock: 0.454
+				64 MB decrypt cbc: wall: 0.528374, clock: 0.453         64 MB decrypt cbc: wall: 0.454573, clock: 0.453
+				timing aes192                                           timing aes192
+				64 MB encrypt ecb: wall: 0.525826, clock: 0.531         64 MB encrypt ecb: wall: 0.547768, clock: 0.546
+				64 MB decrypt ecb: wall: 0.381642, clock: 0.375         64 MB decrypt ecb: wall: 0.423126, clock: 0.407
+				64 MB encrypt cbc: wall: 0.534544, clock: 0.532         64 MB encrypt cbc: wall: 0.546985, clock: 0.547
+				64 MB decrypt cbc: wall: 0.526276, clock: 0.515         64 MB decrypt cbc: wall: 0.522163, clock: 0.516
+				timing aes256                                           timing aes256
+				64 MB encrypt ecb: wall: 0.610611, clock: 0.609         64 MB encrypt ecb: wall: 0.600622, clock: 0.594
+				64 MB decrypt ecb: wall: 0.420402, clock: 0.423         64 MB decrypt ecb: wall: 0.435012, clock: 0.438
+				64 MB encrypt cbc: wall: 0.609286, clock: 0.593         64 MB encrypt cbc: wall: 0.651259, clock: 0.656
+				64 MB decrypt cbc: wall: 0.587573, clock: 0.578         64 MB decrypt cbc: wall: 0.609197, clock: 0.609
+pred timings:
+	UI32
+		PASSTMP
+			BYTEFIRST
+				INTO                                                    NOINTO
+				timing aes128                                           timing aes128
+				64 MB encrypt ecb: wall: 0.369394, clock: 0.3694        64 MB encrypt ecb: wall: 0.328868, clock: 0.328874
+				64 MB decrypt ecb: wall: 0.321385, clock: 0.321388      64 MB decrypt ecb: wall: 0.321944, clock: 0.321947
+				64 MB encrypt cbc: wall: 0.3437, clock: 0.343707        64 MB encrypt cbc: wall: 0.417865, clock: 0.417808
+				64 MB decrypt cbc: wall: 0.346942, clock: 0.346945      64 MB decrypt cbc: wall: 0.408073, clock: 0.408081
+				timing aes192                                           timing aes192
+				64 MB encrypt ecb: wall: 0.425422, clock: 0.425428      64 MB encrypt ecb: wall: 0.388876, clock: 0.38885
+				64 MB decrypt ecb: wall: 0.377561, clock: 0.377568      64 MB decrypt ecb: wall: 0.37768, clock: 0.377653
+				64 MB encrypt cbc: wall: 0.402293, clock: 0.402297      64 MB encrypt cbc: wall: 0.491882, clock: 0.491889
+				64 MB decrypt cbc: wall: 0.403189, clock: 0.403196      64 MB decrypt cbc: wall: 0.481298, clock: 0.481246
+				timing aes256                                           timing aes256
+				64 MB encrypt ecb: wall: 0.482947, clock: 0.482952      64 MB encrypt ecb: wall: 0.445396, clock: 0.445399
+				64 MB decrypt ecb: wall: 0.434787, clock: 0.434792      64 MB decrypt ecb: wall: 0.434648, clock: 0.434593
+				64 MB encrypt cbc: wall: 0.460025, clock: 0.460029      64 MB encrypt cbc: wall: 0.56742, clock: 0.567427
+				64 MB decrypt cbc: wall: 0.459107, clock: 0.459115      64 MB decrypt cbc: wall: 0.552539, clock: 0.552468
+			NOBYTEFIRST
+				INTO                                                    NOINTO
+				timing aes128                                           timing aes128
+				64 MB encrypt ecb: wall: 0.354453, clock: 0.354455      64 MB encrypt ecb: wall: 0.320667, clock: 0.320672
+				64 MB decrypt ecb: wall: 0.321224, clock: 0.321229      64 MB decrypt ecb: wall: 0.322554, clock: 0.322557
+				64 MB encrypt cbc: wall: 0.353564, clock: 0.35357       64 MB encrypt cbc: wall: 0.382268, clock: 0.382271
+				64 MB decrypt cbc: wall: 0.354916, clock: 0.35492       64 MB decrypt cbc: wall: 0.375936, clock: 0.375943
+				timing aes192                                           timing aes192
+				64 MB encrypt ecb: wall: 0.410621, clock: 0.410627      64 MB encrypt ecb: wall: 0.373946, clock: 0.373952
+				64 MB decrypt ecb: wall: 0.377973, clock: 0.37798       64 MB decrypt ecb: wall: 0.37922, clock: 0.379223
+				64 MB encrypt cbc: wall: 0.398379, clock: 0.39838       64 MB encrypt cbc: wall: 0.443736, clock: 0.443745
+				64 MB decrypt cbc: wall: 0.403289, clock: 0.403289      64 MB decrypt cbc: wall: 0.439807, clock: 0.439812
+				timing aes256                                           timing aes256
+				64 MB encrypt ecb: wall: 0.465313, clock: 0.465316      64 MB encrypt ecb: wall: 0.430973, clock: 0.430979
+				64 MB decrypt ecb: wall: 0.449649, clock: 0.449655      64 MB decrypt ecb: wall: 0.434704, clock: 0.434712
+				64 MB encrypt cbc: wall: 0.445711, clock: 0.445715      64 MB encrypt cbc: wall: 0.509515, clock: 0.509518
+				64 MB decrypt cbc: wall: 0.462483, clock: 0.462491      64 MB decrypt cbc: wall: 0.505268, clock: 0.505277
+		NOPASSTMP
+			BYTEFIRST
+				INTO                                                    NOINTO
+				timing aes128                                           timing aes128
+				64 MB encrypt ecb: wall: 0.365071, clock: 0.365076      64 MB encrypt ecb: wall: 0.332708, clock: 0.332714
+				64 MB decrypt ecb: wall: 0.334936, clock: 0.334937      64 MB decrypt ecb: wall: 0.328211, clock: 0.328218
+				64 MB encrypt cbc: wall: 0.336871, clock: 0.336877      64 MB encrypt cbc: wall: 0.333925, clock: 0.333928
+				64 MB decrypt cbc: wall: 0.338375, clock: 0.338382      64 MB decrypt cbc: wall: 0.339649, clock: 0.339656
+				timing aes192                                           timing aes192
+				64 MB encrypt ecb: wall: 0.420019, clock: 0.420025      64 MB encrypt ecb: wall: 0.38568, clock: 0.385686
+				64 MB decrypt ecb: wall: 0.391307, clock: 0.391308      64 MB decrypt ecb: wall: 0.387074, clock: 0.387077
+				64 MB encrypt cbc: wall: 0.391641, clock: 0.391645      64 MB encrypt cbc: wall: 0.390261, clock: 0.390266
+				64 MB decrypt cbc: wall: 0.394874, clock: 0.394881      64 MB decrypt cbc: wall: 0.395983, clock: 0.395987
+				timing aes256                                           timing aes256
+				64 MB encrypt ecb: wall: 0.475022, clock: 0.475027      64 MB encrypt ecb: wall: 0.440668, clock: 0.440676
+				64 MB decrypt ecb: wall: 0.447957, clock: 0.447961      64 MB decrypt ecb: wall: 0.440272, clock: 0.440281
+				64 MB encrypt cbc: wall: 0.44686, clock: 0.446864       64 MB encrypt cbc: wall: 0.4449, clock: 0.444905
+				64 MB decrypt cbc: wall: 0.450007, clock: 0.450016      64 MB decrypt cbc: wall: 0.452746, clock: 0.452755
+			NOBYTEFIRST
+				INTO                                                    NOINTO
+				timing aes128                                           timing aes128
+				64 MB encrypt ecb: wall: 0.361147, clock: 0.361153      64 MB encrypt ecb: wall: 0.33038, clock: 0.330385
+				64 MB decrypt ecb: wall: 0.332, clock: 0.332006         64 MB decrypt ecb: wall: 0.325913, clock: 0.325916
+				64 MB encrypt cbc: wall: 0.335022, clock: 0.335024      64 MB encrypt cbc: wall: 0.331607, clock: 0.331613
+				64 MB decrypt cbc: wall: 0.333023, clock: 0.333029      64 MB decrypt cbc: wall: 0.338852, clock: 0.338859
+				timing aes192                                           timing aes192
+				64 MB encrypt ecb: wall: 0.415183, clock: 0.415186      64 MB encrypt ecb: wall: 0.381495, clock: 0.381498
+				64 MB decrypt ecb: wall: 0.386663, clock: 0.386668      64 MB decrypt ecb: wall: 0.380858, clock: 0.380865
+				64 MB encrypt cbc: wall: 0.388436, clock: 0.388443      64 MB encrypt cbc: wall: 0.387842, clock: 0.387605
+				64 MB decrypt cbc: wall: 0.388197, clock: 0.3882        64 MB decrypt cbc: wall: 0.393287, clock: 0.391988
+				timing aes256                                           timing aes256
+				64 MB encrypt ecb: wall: 0.47158, clock: 0.471588       64 MB encrypt ecb: wall: 0.437401, clock: 0.436038
+				64 MB decrypt ecb: wall: 0.44022, clock: 0.440209       64 MB decrypt ecb: wall: 0.439766, clock: 0.43795
+				64 MB encrypt cbc: wall: 0.443991, clock: 0.443999      64 MB encrypt cbc: wall: 0.442839, clock: 0.440813
+				64 MB decrypt cbc: wall: 0.442788, clock: 0.442792      64 MB decrypt cbc: wall: 0.449192, clock: 0.446879
+	UIL32
+		PASSTMP
+			BYTEFIRST
+				INTO                                                    NOINTO
+				timing aes128                                           timing aes128
+				64 MB encrypt ecb: wall: 0.280766, clock: 0.280764      64 MB encrypt ecb: wall: 0.279545, clock: 0.279548
+				64 MB decrypt ecb: wall: 0.226719, clock: 0.226723      64 MB decrypt ecb: wall: 0.22559, clock: 0.225591
+				64 MB encrypt cbc: wall: 0.281388, clock: 0.281393      64 MB encrypt cbc: wall: 0.419466, clock: 0.419382
+				64 MB decrypt cbc: wall: 0.258104, clock: 0.258109      64 MB decrypt cbc: wall: 0.425395, clock: 0.425402
+				timing aes192                                           timing aes192
+				64 MB encrypt ecb: wall: 0.321486, clock: 0.321487      64 MB encrypt ecb: wall: 0.322738, clock: 0.322708
+				64 MB decrypt ecb: wall: 0.266847, clock: 0.266852      64 MB decrypt ecb: wall: 0.260124, clock: 0.260048
+				64 MB encrypt cbc: wall: 0.324321, clock: 0.324326      64 MB encrypt cbc: wall: 0.490871, clock: 0.490877
+				64 MB decrypt cbc: wall: 0.291627, clock: 0.291629      64 MB decrypt cbc: wall: 0.500854, clock: 0.500801
+				timing aes256                                           timing aes256
+				64 MB encrypt ecb: wall: 0.365691, clock: 0.365696      64 MB encrypt ecb: wall: 0.365036, clock: 0.365042
+				64 MB decrypt ecb: wall: 0.299907, clock: 0.299913      64 MB decrypt ecb: wall: 0.294701, clock: 0.294673
+				64 MB encrypt cbc: wall: 0.368527, clock: 0.368528      64 MB encrypt cbc: wall: 0.564494, clock: 0.564472
+				64 MB decrypt cbc: wall: 0.3442, clock: 0.344204        64 MB decrypt cbc: wall: 0.574388, clock: 0.574335
+			NOBYTEFIRST
+				INTO                                                    NOINTO
+				timing aes128                                           timing aes128
+				64 MB encrypt ecb: wall: 0.255569, clock: 0.255572      64 MB encrypt ecb: wall: 0.256061, clock: 0.256056
+				64 MB decrypt ecb: wall: 0.22743, clock: 0.227435       64 MB decrypt ecb: wall: 0.228171, clock: 0.228172
+				64 MB encrypt cbc: wall: 0.251668, clock: 0.251669      64 MB encrypt cbc: wall: 0.384483, clock: 0.384487
+				64 MB decrypt cbc: wall: 0.269241, clock: 0.269247      64 MB decrypt cbc: wall: 0.384528, clock: 0.384536
+				timing aes192                                           timing aes192
+				64 MB encrypt ecb: wall: 0.290317, clock: 0.290321      64 MB encrypt ecb: wall: 0.293208, clock: 0.293207
+				64 MB decrypt ecb: wall: 0.261133, clock: 0.261138      64 MB decrypt ecb: wall: 0.263276, clock: 0.263281
+				64 MB encrypt cbc: wall: 0.287879, clock: 0.287882      64 MB encrypt cbc: wall: 0.449444, clock: 0.449453
+				64 MB decrypt cbc: wall: 0.291088, clock: 0.291093      64 MB decrypt cbc: wall: 0.450665, clock: 0.450667
+				timing aes256                                           timing aes256
+				64 MB encrypt ecb: wall: 0.337188, clock: 0.337193      64 MB encrypt ecb: wall: 0.331335, clock: 0.33134
+				64 MB decrypt ecb: wall: 0.296442, clock: 0.296445      64 MB decrypt ecb: wall: 0.299556, clock: 0.299562
+				64 MB encrypt cbc: wall: 0.325958, clock: 0.325941      64 MB encrypt cbc: wall: 0.511014, clock: 0.511019
+				64 MB decrypt cbc: wall: 0.346857, clock: 0.346863      64 MB decrypt cbc: wall: 0.511214, clock: 0.511223
+		NOPASSTMP
+			BYTEFIRST
+				INTO                                                    NOINTO
+				timing aes128                                           timing aes128
+				64 MB encrypt ecb: wall: 0.2559, clock: 0.255903        64 MB encrypt ecb: wall: 0.25765, clock: 0.257653
+				64 MB decrypt ecb: wall: 0.232387, clock: 0.232391      64 MB decrypt ecb: wall: 0.226533, clock: 0.226538
+				64 MB encrypt cbc: wall: 0.25814, clock: 0.258145       64 MB encrypt cbc: wall: 0.544001, clock: 0.544007
+				64 MB decrypt cbc: wall: 0.259125, clock: 0.259126      64 MB decrypt cbc: wall: 0.546436, clock: 0.546443
+				timing aes192                                           timing aes192
+				64 MB encrypt ecb: wall: 0.294288, clock: 0.294292      64 MB encrypt ecb: wall: 0.291667, clock: 0.291672
+				64 MB decrypt ecb: wall: 0.262906, clock: 0.262912      64 MB decrypt ecb: wall: 0.263087, clock: 0.263093
+				64 MB encrypt cbc: wall: 0.295623, clock: 0.295628      64 MB encrypt cbc: wall: 0.655548, clock: 0.655556
+				64 MB decrypt cbc: wall: 0.298004, clock: 0.298006      64 MB decrypt cbc: wall: 0.647228, clock: 0.64724
+				timing aes256                                           timing aes256
+				64 MB encrypt ecb: wall: 0.330169, clock: 0.330173      64 MB encrypt ecb: wall: 0.328672, clock: 0.328673
+				64 MB decrypt ecb: wall: 0.296958, clock: 0.296964      64 MB decrypt ecb: wall: 0.29878, clock: 0.298783
+				64 MB encrypt cbc: wall: 0.332677, clock: 0.33268       64 MB encrypt cbc: wall: 0.746679, clock: 0.746688
+				64 MB decrypt cbc: wall: 0.338687, clock: 0.33867       64 MB decrypt cbc: wall: 0.74682, clock: 0.746828
+			NOBYTEFIRST
+				INTO                                                    NOINTO
+				timing aes128                                           timing aes128
+				64 MB encrypt ecb: wall: 0.256985, clock: 0.25696       64 MB encrypt ecb: wall: 0.256876, clock: 0.256862
+				64 MB decrypt ecb: wall: 0.227555, clock: 0.22756       64 MB decrypt ecb: wall: 0.229883, clock: 0.229885
+				64 MB encrypt cbc: wall: 0.25679, clock: 0.256796       64 MB encrypt cbc: wall: 0.518747, clock: 0.518757
+				64 MB decrypt cbc: wall: 0.258101, clock: 0.258105      64 MB decrypt cbc: wall: 0.525477, clock: 0.525482
+				timing aes192                                           timing aes192
+				64 MB encrypt ecb: wall: 0.293513, clock: 0.293513      64 MB encrypt ecb: wall: 0.295215, clock: 0.295218
+				64 MB decrypt ecb: wall: 0.263186, clock: 0.263183      64 MB decrypt ecb: wall: 0.265816, clock: 0.265819
+				64 MB encrypt cbc: wall: 0.294627, clock: 0.294619      64 MB encrypt cbc: wall: 0.609104, clock: 0.609115
+				64 MB decrypt cbc: wall: 0.296884, clock: 0.29689       64 MB decrypt cbc: wall: 0.621622, clock: 0.621631
+				timing aes256                                           timing aes256
+				64 MB encrypt ecb: wall: 0.33238, clock: 0.332381       64 MB encrypt ecb: wall: 0.333213, clock: 0.333219
+				64 MB decrypt ecb: wall: 0.297406, clock: 0.297412      64 MB decrypt ecb: wall: 0.296948, clock: 0.296954
+				64 MB encrypt cbc: wall: 0.33214, clock: 0.332146       64 MB encrypt cbc: wall: 0.703328, clock: 0.703334
+				64 MB decrypt cbc: wall: 0.334822, clock: 0.334825      64 MB decrypt cbc: wall: 0.71773, clock: 0.717741
+wlaptop timings:
+	UI32
+		PASSTMP
+			BYTEFIRST
+				INTO                                                    NOINTO
+				timing aes128                                           timing aes128
+				64 MB encrypt ecb: wall: 0.427146, clock: 0.427         64 MB encrypt ecb: wall: 0.402877, clock: 0.403
+				64 MB decrypt ecb: wall: 0.353144, clock: 0.353         64 MB decrypt ecb: wall: 0.339772, clock: 0.34
+				64 MB encrypt cbc: wall: 0.429203, clock: 0.429         64 MB encrypt cbc: wall: 0.395109, clock: 0.395
+				64 MB decrypt cbc: wall: 0.348838, clock: 0.348         64 MB decrypt cbc: wall: 0.395226, clock: 0.395
+				timing aes192                                           timing aes192
+				64 MB encrypt ecb: wall: 0.508121, clock: 0.508         64 MB encrypt ecb: wall: 0.476648, clock: 0.477
+				64 MB decrypt ecb: wall: 0.400877, clock: 0.401         64 MB decrypt ecb: wall: 0.404845, clock: 0.404
+				64 MB encrypt cbc: wall: 0.508365, clock: 0.509         64 MB encrypt cbc: wall: 0.473553, clock: 0.474
+				64 MB decrypt cbc: wall: 0.410773, clock: 0.411         64 MB decrypt cbc: wall: 0.466603, clock: 0.467
+				timing aes256                                           timing aes256
+				64 MB encrypt ecb: wall: 0.559053, clock: 0.559         64 MB encrypt ecb: wall: 0.530432, clock: 0.531
+				64 MB decrypt ecb: wall: 0.460962, clock: 0.461         64 MB decrypt ecb: wall: 0.468557, clock: 0.468
+				64 MB encrypt cbc: wall: 0.67332, clock: 0.673          64 MB encrypt cbc: wall: 0.529418, clock: 0.53
+				64 MB decrypt cbc: wall: 0.467782, clock: 0.468         64 MB decrypt cbc: wall: 0.540084, clock: 0.54
+			NOBYTEFIRST
+				INTO                                                    NOINTO
+				timing aes128                                           timing aes128
+				64 MB encrypt ecb: wall: 0.411546, clock: 0.412         64 MB encrypt ecb: wall: 0.388736, clock: 0.388
+				64 MB decrypt ecb: wall: 0.340261, clock: 0.34          64 MB decrypt ecb: wall: 0.34146, clock: 0.342
+				64 MB encrypt cbc: wall: 0.402814, clock: 0.403         64 MB encrypt cbc: wall: 0.382494, clock: 0.383
+				64 MB decrypt cbc: wall: 0.34694, clock: 0.347          64 MB decrypt cbc: wall: 0.380913, clock: 0.381
+				timing aes192                                           timing aes192
+				64 MB encrypt ecb: wall: 0.468464, clock: 0.469         64 MB encrypt ecb: wall: 0.442967, clock: 0.443
+				64 MB decrypt ecb: wall: 0.412991, clock: 0.413         64 MB decrypt ecb: wall: 0.408752, clock: 0.408
+				64 MB encrypt cbc: wall: 0.469787, clock: 0.47          64 MB encrypt cbc: wall: 0.444529, clock: 0.445
+				64 MB decrypt cbc: wall: 0.405126, clock: 0.405         64 MB decrypt cbc: wall: 0.451563, clock: 0.451
+				timing aes256                                           timing aes256
+				64 MB encrypt ecb: wall: 0.525721, clock: 0.525         64 MB encrypt ecb: wall: 0.524962, clock: 0.525
+				64 MB decrypt ecb: wall: 0.463705, clock: 0.464         64 MB decrypt ecb: wall: 0.581797, clock: 0.582
+				64 MB encrypt cbc: wall: 0.537841, clock: 0.537         64 MB encrypt cbc: wall: 0.507965, clock: 0.508
+				64 MB decrypt cbc: wall: 0.465977, clock: 0.466         64 MB decrypt cbc: wall: 0.515707, clock: 0.515
+		NOPASSTMP
+			BYTEFIRST
+				INTO                                                    NOINTO
+				timing aes128                                           timing aes128
+				64 MB encrypt ecb: wall: 0.438405, clock: 0.439         64 MB encrypt ecb: wall: 0.441935, clock: 0.441
+				64 MB decrypt ecb: wall: 0.435008, clock: 0.435         64 MB decrypt ecb: wall: 0.430602, clock: 0.431
+				64 MB encrypt cbc: wall: 0.478154, clock: 0.478         64 MB encrypt cbc: wall: 0.444162, clock: 0.444
+				64 MB decrypt cbc: wall: 0.428356, clock: 0.429         64 MB decrypt cbc: wall: 0.446248, clock: 0.446
+				timing aes192                                           timing aes192
+				64 MB encrypt ecb: wall: 0.523344, clock: 0.523         64 MB encrypt ecb: wall: 0.52257, clock: 0.523
+				64 MB decrypt ecb: wall: 0.51764, clock: 0.518          64 MB decrypt ecb: wall: 0.500412, clock: 0.5
+				64 MB encrypt cbc: wall: 0.556058, clock: 0.556         64 MB encrypt cbc: wall: 0.529668, clock: 0.53
+				64 MB decrypt cbc: wall: 0.500806, clock: 0.5           64 MB decrypt cbc: wall: 0.537667, clock: 0.538
+				timing aes256                                           timing aes256
+				64 MB encrypt ecb: wall: 0.598352, clock: 0.598         64 MB encrypt ecb: wall: 0.60275, clock: 0.603
+				64 MB decrypt ecb: wall: 0.597404, clock: 0.598         64 MB decrypt ecb: wall: 0.59634, clock: 0.597
+				64 MB encrypt cbc: wall: 0.633051, clock: 0.633         64 MB encrypt cbc: wall: 0.607466, clock: 0.608
+				64 MB decrypt cbc: wall: 0.590608, clock: 0.591         64 MB decrypt cbc: wall: 0.613262, clock: 0.613
+			NOBYTEFIRST
+				INTO                                                    NOINTO
+				timing aes128                                           timing aes128
+				64 MB encrypt ecb: wall: 0.40695, clock: 0.407          64 MB encrypt ecb: wall: 0.402484, clock: 0.402
+				64 MB decrypt ecb: wall: 0.398518, clock: 0.399         64 MB decrypt ecb: wall: 0.412341, clock: 0.413
+				64 MB encrypt cbc: wall: 0.429466, clock: 0.429         64 MB encrypt cbc: wall: 0.406252, clock: 0.407
+				64 MB decrypt cbc: wall: 0.392437, clock: 0.392         64 MB decrypt cbc: wall: 0.422072, clock: 0.422
+				timing aes192                                           timing aes192
+				64 MB encrypt ecb: wall: 0.463474, clock: 0.464         64 MB encrypt ecb: wall: 0.466722, clock: 0.467
+				64 MB decrypt ecb: wall: 0.463323, clock: 0.464         64 MB decrypt ecb: wall: 0.465137, clock: 0.465
+				64 MB encrypt cbc: wall: 0.501815, clock: 0.502         64 MB encrypt cbc: wall: 0.487839, clock: 0.487
+				64 MB decrypt cbc: wall: 0.46289, clock: 0.463          64 MB decrypt cbc: wall: 0.480704, clock: 0.481
+				timing aes256                                           timing aes256
+				64 MB encrypt ecb: wall: 0.538776, clock: 0.539         64 MB encrypt ecb: wall: 0.558848, clock: 0.559
+				64 MB decrypt ecb: wall: 0.539889, clock: 0.54          64 MB decrypt ecb: wall: 0.540613, clock: 0.54
+				64 MB encrypt cbc: wall: 0.574861, clock: 0.575         64 MB encrypt cbc: wall: 0.550629, clock: 0.551
+				64 MB decrypt cbc: wall: 0.549502, clock: 0.549         64 MB decrypt cbc: wall: 0.549848, clock: 0.55
+	UIL32
+		PASSTMP
+			BYTEFIRST
+				INTO                                                    NOINTO
+				timing aes128                                           timing aes128
+				64 MB encrypt ecb: wall: 0.279738, clock: 0.28          64 MB encrypt ecb: wall: 0.273213, clock: 0.273
+				64 MB decrypt ecb: wall: 0.268529, clock: 0.269         64 MB decrypt ecb: wall: 0.263979, clock: 0.264
+				64 MB encrypt cbc: wall: 0.269134, clock: 0.269         64 MB encrypt cbc: wall: 0.434695, clock: 0.434
+				64 MB decrypt cbc: wall: 0.275783, clock: 0.276         64 MB decrypt cbc: wall: 0.443479, clock: 0.444
+				timing aes192                                           timing aes192
+				64 MB encrypt ecb: wall: 0.313114, clock: 0.313         64 MB encrypt ecb: wall: 0.325355, clock: 0.325
+				64 MB decrypt ecb: wall: 0.312397, clock: 0.312         64 MB decrypt ecb: wall: 0.303125, clock: 0.303
+				64 MB encrypt cbc: wall: 0.306706, clock: 0.307         64 MB encrypt cbc: wall: 0.518303, clock: 0.518
+				64 MB decrypt cbc: wall: 0.309824, clock: 0.31          64 MB decrypt cbc: wall: 0.515966, clock: 0.516
+				timing aes256                                           timing aes256
+				64 MB encrypt ecb: wall: 0.350686, clock: 0.351         64 MB encrypt ecb: wall: 0.35916, clock: 0.359
+				64 MB decrypt ecb: wall: 0.347291, clock: 0.348         64 MB decrypt ecb: wall: 0.442859, clock: 0.443
+				64 MB encrypt cbc: wall: 0.34847, clock: 0.349          64 MB encrypt cbc: wall: 0.716807, clock: 0.717
+				64 MB decrypt cbc: wall: 0.364065, clock: 0.364         64 MB decrypt cbc: wall: 0.641433, clock: 0.641
+			NOBYTEFIRST
+				INTO                                                    NOINTO
+				timing aes128                                           timing aes128
+				64 MB encrypt ecb: wall: 0.280151, clock: 0.28          64 MB encrypt ecb: wall: 0.272387, clock: 0.273
+				64 MB decrypt ecb: wall: 0.2653, clock: 0.265           64 MB decrypt ecb: wall: 0.271055, clock: 0.271
+				64 MB encrypt cbc: wall: 0.264739, clock: 0.265         64 MB encrypt cbc: wall: 0.385207, clock: 0.385
+				64 MB decrypt cbc: wall: 0.274131, clock: 0.274         64 MB decrypt cbc: wall: 0.377758, clock: 0.378
+				timing aes192                                           timing aes192
+				64 MB encrypt ecb: wall: 0.322637, clock: 0.323         64 MB encrypt ecb: wall: 0.314609, clock: 0.314
+				64 MB decrypt ecb: wall: 0.311065, clock: 0.311         64 MB decrypt ecb: wall: 0.311232, clock: 0.312
+				64 MB encrypt cbc: wall: 0.310366, clock: 0.311         64 MB encrypt cbc: wall: 0.446097, clock: 0.446
+				64 MB decrypt cbc: wall: 0.316737, clock: 0.317         64 MB decrypt cbc: wall: 0.442321, clock: 0.442
+				timing aes256                                           timing aes256
+				64 MB encrypt ecb: wall: 0.357051, clock: 0.357         64 MB encrypt ecb: wall: 0.350299, clock: 0.35
+				64 MB decrypt ecb: wall: 0.35105, clock: 0.351          64 MB decrypt ecb: wall: 0.345475, clock: 0.345
+				64 MB encrypt cbc: wall: 0.347288, clock: 0.348         64 MB encrypt cbc: wall: 0.520724, clock: 0.521
+				64 MB decrypt cbc: wall: 0.359259, clock: 0.36          64 MB decrypt cbc: wall: 0.495719, clock: 0.495
+		NOPASSTMP
+			BYTEFIRST
+				INTO                                                    NOINTO
+				timing aes128                                           timing aes128
+				64 MB encrypt ecb: wall: 0.41928, clock: 0.419          64 MB encrypt ecb: wall: 0.396352, clock: 0.396
+				64 MB decrypt ecb: wall: 0.389982, clock: 0.39          64 MB decrypt ecb: wall: 0.385254, clock: 0.385
+				64 MB encrypt cbc: wall: 0.405597, clock: 0.405         64 MB encrypt cbc: wall: 0.401867, clock: 0.402
+				64 MB decrypt cbc: wall: 0.401742, clock: 0.402         64 MB decrypt cbc: wall: 0.419499, clock: 0.419
+				timing aes192                                           timing aes192
+				64 MB encrypt ecb: wall: 0.461327, clock: 0.461         64 MB encrypt ecb: wall: 0.462646, clock: 0.463
+				64 MB decrypt ecb: wall: 0.45461, clock: 0.455          64 MB decrypt ecb: wall: 0.459477, clock: 0.459
+				64 MB encrypt cbc: wall: 0.471519, clock: 0.471         64 MB encrypt cbc: wall: 0.468844, clock: 0.468
+				64 MB decrypt cbc: wall: 0.463749, clock: 0.463         64 MB decrypt cbc: wall: 0.483475, clock: 0.484
+				timing aes256                                           timing aes256
+				64 MB encrypt ecb: wall: 0.548282, clock: 0.549         64 MB encrypt ecb: wall: 0.533294, clock: 0.534
+				64 MB decrypt ecb: wall: 0.538307, clock: 0.538         64 MB decrypt ecb: wall: 0.5263, clock: 0.527
+				64 MB encrypt cbc: wall: 0.533054, clock: 0.533         64 MB encrypt cbc: wall: 0.530936, clock: 0.531
+				64 MB decrypt cbc: wall: 0.542484, clock: 0.542         64 MB decrypt cbc: wall: 0.552981, clock: 0.553
+			NOBYTEFIRST
+				INTO                                                    NOINTO
+				timing aes128                                           timing aes128
+				64 MB encrypt ecb: wall: 0.393495, clock: 0.393         64 MB encrypt ecb: wall: 0.400006, clock: 0.4
+				64 MB decrypt ecb: wall: 0.377728, clock: 0.378         64 MB decrypt ecb: wall: 0.385192, clock: 0.385
+				64 MB encrypt cbc: wall: 0.39445, clock: 0.394          64 MB encrypt cbc: wall: 0.410353, clock: 0.41
+				64 MB decrypt cbc: wall: 0.415469, clock: 0.416         64 MB decrypt cbc: wall: 0.408332, clock: 0.408
+				timing aes192                                           timing aes192
+				64 MB encrypt ecb: wall: 0.460195, clock: 0.46          64 MB encrypt ecb: wall: 0.455082, clock: 0.455
+				64 MB decrypt ecb: wall: 0.464038, clock: 0.464         64 MB decrypt ecb: wall: 0.460563, clock: 0.46
+				64 MB encrypt cbc: wall: 0.466779, clock: 0.466         64 MB encrypt cbc: wall: 0.473757, clock: 0.474
+				64 MB decrypt cbc: wall: 0.46833, clock: 0.469          64 MB decrypt cbc: wall: 0.508041, clock: 0.508
+				timing aes256                                           timing aes256
+				64 MB encrypt ecb: wall: 0.539976, clock: 0.54          64 MB encrypt ecb: wall: 0.531674, clock: 0.532
+				64 MB decrypt ecb: wall: 0.518756, clock: 0.519         64 MB decrypt ecb: wall: 0.527125, clock: 0.527
+				64 MB encrypt cbc: wall: 0.538637, clock: 0.539         64 MB encrypt cbc: wall: 0.547085, clock: 0.547
+				64 MB decrypt cbc: wall: 0.525727, clock: 0.525         64 MB decrypt cbc: wall: 0.5427, clock: 0.542

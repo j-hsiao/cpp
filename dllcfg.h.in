@@ -1,0 +1,28 @@
+#ifndef @PACKAGENAME@_DLLCFG_H
+#define @PACKAGENAME@_DLLCFG_H
+
+//dll import/export
+#if defined(_WIN32) && @is_shared@
+#  if defined(@PACKAGENAME@_EXPORTS) && @PACKAGENAME@_EXPORTS
+#    pragma message("@PACKAGENAME@ exporting")
+#    define @PACKAGENAME@_API __declspec(dllexport)
+#  else
+#    pragma message("@PACKAGENAME@ importing")
+#    define @PACKAGENAME@_API __declspec(dllimport)
+#  endif
+#else
+#  define @PACKAGENAME@_API
+#endif
+
+//externc macro for C/C++
+#ifndef CPP_EXTERNC_BEGIN
+#  ifdef __cplusplus
+#    define CPP_EXTERNC_BEGIN extern "C" {
+#    define CPP_EXTERNC_END }
+#  else
+#    define CPP_EXTERNC_BEGIN
+#    define CPP_EXTERNC_END
+#  endif
+#endif
+
+#endif
