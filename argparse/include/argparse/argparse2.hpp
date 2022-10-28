@@ -7,6 +7,7 @@
 #ifndef ARGPARSE_HPP
 #define ARGPARSE_HPP
 
+#include <iostream>
 #include <map>
 #include <sstream>
 #include <stdexcept>
@@ -16,6 +17,7 @@
 namespace argparse
 {
 	int skipcount(const char *s,  char prefix);
+	std::string rawname(const std::string &s, char prefix);
 	struct BaseArg
 	{
 		std::string name;
@@ -37,13 +39,15 @@ namespace argparse
 	class Parser
 	{
 		public:
-			Parser(char flag_prefix_='-'): prefix(flag_prefix_) {}
-
+			Parser(char flag_prefix_='-', std::string program_="program"):
+				prefix(flag_prefix_), program(program_),
+				positionals{}, flags{}, flagmap{}
+			{}
 			//parse should only be called once in lifetime of the parser.
 			//ignore program name when parsing
-			void parse(int argc, char *argv[]);
-			void parse_main(int argc, char *argv[]) { parse(argc-1, argv+1); }
-
+			bool parse(int argc, char *argv[]);
+			bool parse_main(int argc, char *argv[])
+			{ program = argv[0]; return parse(argc-1, argv+1); }
 			//name: name of argument, start with flag_prefix if a flag.
 			//help: a help string
 			//shortname: short name for the arg, if any.
@@ -54,8 +58,9 @@ namespace argparse
 				const std::string &shortname="",
 				const std::vector<T> &defaults={});
 			~Parser();
-
 			char prefix;
+			std::string program;
+			void help() const;
 		private:
 			std::vector<BaseArg*> positionals;
 			std::vector<BaseArg*> flags;
@@ -68,45 +73,9 @@ namespace argparse
 				argv += consumed;
 			}
 			void process_flag(
-				int &argc, char **&argv, std::vector<BaseArg*>::iterator &it, int &nskips)
-			{
-				if (nskips)
-				{
-					--nskips;
-					process_positional(argc, argv, it, nskips);
-				}
-				else
-				{
-					std::size_t idx;
-					try
-					{ idx = flagmap.at(argv[0]); }
-					catch (std::out_of_range &e)
-					{
-						if (nskips = skipcount(argv[0]+1, prefix))
-						{
-							--argc;
-							++argv;
-							return;
-						}
-						throw std::out_of_range("unrecognized flag " + std::string(argv[0]));
-					}
-					--argc;
-					++argv;
-					process_arg(argc, argv, flags[idx], nskips);
-				}
-
-			}
+				int &argc, char **&argv, std::vector<BaseArg*>::iterator &it, int &nskips);
 			void process_positional(
-				int &argc, char **&argv, std::vector<BaseArg*>::iterator &it, int &nskips)
-			{
-				if (it == positionals.end())
-				{
-					throw std::runtime_error(
-						"unrecognized positional argument " + std::string(argv[0]));
-				}
-				process_arg(argc, argv, *it, nskips);
-				++it;
-			}
+				int &argc, char **&argv, std::vector<BaseArg*>::iterator &it, int &nskips);
 	};
 
 	//------------------------------
@@ -142,7 +111,11 @@ namespace argparse
 			try
 			{ value = std::stoll(arg); }
 			catch (std::exception&)
-			{ throw std::invalid_argument(arg); }
+			{
+				std::stringstream s;
+				s << name << " expected a number, but got \"" << arg << '"';
+				throw std::invalid_argument(s.str());
+			}
 		}
 	};
 	template<>
@@ -156,7 +129,17 @@ namespace argparse
 		template<class T=float>
 		T as() const
 		{ return static_cast<T>(value); }
-		void parse(const char *arg) { value = std::stod(arg); }
+		void parse(const char *arg)
+		{
+			try
+			{ value = std::stod(arg); }
+			catch (std::exception&)
+			{
+				std::stringstream s;
+				s << name << " expected a float, but got \"" << arg << '"';
+				throw std::invalid_argument(s.str());
+			}
+		}
 	};
 	template<>
 	struct Value<char*>
@@ -237,6 +220,13 @@ namespace argparse
 				ptr->parse(cur);
 				++ptr;
 			}
+			if (ptr != end)
+			{
+				std::stringstream s;
+				s << name << " expected " << nargs << " arguments, but got "
+					<< static_cast<int>(ptr - values) << ".";
+				throw std::runtime_error(s.str());
+			}
 			return consumed;
 		}
 		virtual int count() const { return nargs; }
@@ -282,16 +272,6 @@ namespace argparse
 		{ return values.end(); }
 		virtual int parse(int argc, char *argv[], char prefix, int &nskips)
 		{
-			if (!argc)
-			{
-				for (const auto &d : defaults)
-				{
-					values.push_back({});
-					values.back().name = name.c_str();
-					values.back().value = static_cast<decltype(Value<T>::value)>(d);
-				}
-				return 0;
-			}
 			for (int i=0; i<argc; ++i)
 			{
 				if (argv[i][0] == prefix)
@@ -308,6 +288,15 @@ namespace argparse
 				values.push_back({});
 				values.back().name = name.c_str();
 				values.back().parse(argv[i]);
+			}
+			if (!values.size())
+			{
+				for (const auto &d : defaults)
+				{
+					values.push_back({});
+					values.back().name = name.c_str();
+					values.back().value = static_cast<decltype(Value<T>::value)>(d);
+				}
 			}
 			return argc;
 		}
@@ -327,14 +316,15 @@ namespace argparse
 		BaseArg **bptr;
 		if (name[0] == prefix)
 		{
-			if (!flagmap.insert({name, 0}).second)
+			if (!flagmap.insert({name, flags.size()}).second)
 			{
 				std::stringstream s;
 				s << "Argument " << name << " already added!";
 				throw std::logic_error(s.str());
 			}
-			if (shortname.size() && !flagmap.insert({shortname, 0}).second)
+			if (shortname.size() && !flagmap.insert({shortname, flags.size()}).second)
 			{
+				flagmap.erase(name);
 				std::stringstream s;
 				s << "Shortname " << shortname << " already exists!";
 				throw std::logic_error(s.str());
@@ -364,22 +354,138 @@ namespace argparse
 		positionals.clear();
 	}
 
-	void Parser::parse(int argc, char **argv)
+	std::string rawname(const std::string &s, char prefix)
+	{
+		std::size_t offset = s.find_first_not_of(prefix);
+		if (offset != s.npos)
+		{ return s.substr(offset); }
+		return "";
+	}
+
+	void Parser::process_flag(
+		int &argc, char **&argv, std::vector<BaseArg*>::iterator &it, int &nskips)
+	{
+		if (nskips)
+		{
+			--nskips;
+			process_positional(argc, argv, it, nskips);
+		}
+		else
+		{
+			std::size_t idx;
+			try
+			{ idx = flagmap.at(argv[0]); }
+			catch (std::out_of_range &e)
+			{
+				if (nskips = skipcount(argv[0]+1, prefix))
+				{
+					--argc;
+					++argv;
+					return;
+				}
+				std::string raw = rawname(argv[0], prefix);
+				if (raw == "help" || raw == "h")
+				{ argc = -1; return; }
+				throw std::out_of_range("unrecognized flag " + std::string(argv[0]));
+			}
+			--argc;
+			++argv;
+			process_arg(argc, argv, flags[idx], nskips);
+		}
+
+	}
+	void Parser::process_positional(
+		int &argc, char **&argv, std::vector<BaseArg*>::iterator &it, int &nskips)
+	{
+		if (it == positionals.end())
+		{
+			throw std::runtime_error(
+				"unrecognized positional argument " + std::string(argv[0]));
+		}
+		process_arg(argc, argv, *it, nskips);
+		++it;
+	}
+
+	bool Parser::parse(int argc, char **argv)
 	{
 		auto it = positionals.begin();
 		int nskips = 0;
-		while (argc)
+		while (argc>0)
 		{
-			std::cerr << argv[0] << std::endl;
 			if (argv[0][0] == prefix)
 			{ process_flag(argc, argv, it, nskips); }
 			else
 			{ process_positional(argc, argv, it, nskips); }
 		}
+		if (argc<0) { help(); return true; }
 		while (it != positionals.end())
 		{
 			(*it)->parse(0, argv, prefix, nskips);
 			++it;
+		}
+		return false;
+	}
+	struct lensort
+	{
+		bool operator()(
+			const std::string &s1, const std::string &s2) const
+		{ return s1.size() < s2.size(); }
+
+	};
+	void Parser::help() const
+	{
+		std::cout << program;
+		std::map<const BaseArg*, std::vector<std::string>> idx2extras;
+		for (auto it: flagmap)
+		{
+			if (it.first != flags[it.second]->name)
+			{ idx2extras[flags[it.second]].push_back(it.first); }
+		}
+		for (const BaseArg *flag: flags)
+		{
+			std::cout << " [" << (idx2extras[flag].size() ? idx2extras[flag][0] : flag->name);
+			if (flag->count() > 0)
+			{ std::cout << " <" << rawname(flag->name, prefix) << ">x" << flag->count(); }
+			else if (flag->count() < 0)
+			{ std::cout << " <" << rawname(flag->name, prefix) << ">..."; }
+			std::cout << ']';
+		}
+		for (const BaseArg *ptr : positionals)
+		{
+			std::cout << " <" << ptr->name;
+			if (ptr->count() > 1)
+			{ std::cout << ' ' << ptr->count(); }
+			else if (ptr->count() < 0)
+			{ std::cout << " ..."; }
+			std::cout << ">";
+		}
+		std::cout << std::endl;
+		for (const BaseArg *flag: flags)
+		{
+			std::cout << flag->name;
+			if (idx2extras[flag].size())
+			{
+				for (auto &name : idx2extras[flag])
+				{ std::cout << ", " << name; }
+			}
+			if (flag->count() > 0)
+			{ std::cout << " <" << rawname(flag->name, prefix) << ">x" << flag->count(); }
+			else if (flag->count() < 0)
+			{ std::cout << " <" << rawname(flag->name, prefix) << ">..."; }
+			std::cout << std::endl;
+			if (flag->help.size())
+			{ std::cout << '\t' << flag->help << std::endl; }
+		}
+		for (const BaseArg *pos: positionals)
+		{
+			std::cout << "<" << pos->name << '>';
+			if (pos->count() > 1)
+			{ std::cout << " x" << pos->count(); }
+			else if (pos->count() < 0)
+			{ std::cout << "..."; }
+			std::cout << std::endl;
+			if (pos->help.size())
+			{ std::cout << '\t' << pos->help << std::endl; }
 		}
 	}
 }
